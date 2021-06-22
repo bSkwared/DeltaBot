@@ -59,3 +59,12 @@ players = client.fetchPlayers(allycodes)
 for player in players:
     print("Name: {0} ({1}) level: {2} - Guild: {3}".format(player['name'], player['allyCode'], player['level'], player['guildName']))
 ```
+
+## Example Code
+
+The [get-guild-allycodes.py](examples/get-guild-allycodes.py) file will collect a list of
+guild member allycodes. Update the script with an API username, password and the allycode of
+a guild member before executing.
+
+The [swgoh-sample.py](examples/swgoh-example.py) file is a collection of example code to illustrate
+usage of various API endpoints. It is not intended to be run as is. 
