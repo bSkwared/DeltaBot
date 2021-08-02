@@ -1,9 +1,8 @@
-from api_swgoh_help import api_swgoh_help, settings
+from api_swgoh_help import api_swgoh_help
 
 # Change the settings below
-allycode = 314927874
-creds = settings('MarTrepodi', 'yGv-y74-eUu-cNn')
-client = api_swgoh_help(creds)
+allycode = 123456789
+client = api_swgoh_help({'username': 'JohnDoe', 'password': 'password'})
 
 
 def getGuild(api_client, allycode):
