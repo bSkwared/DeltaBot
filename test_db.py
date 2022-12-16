@@ -1,7 +1,6 @@
 import peewee as PW
 import sys
 import ntplib
-import datetime
 import json
 import os
 import datetime
@@ -154,6 +153,7 @@ def convert_gac_division(division):
 
 guilds_seen = {}
 for player in player_dump:
+    start_creation = datetime.datetime.now()
     #breakpoint()
 
     # Load current player, create if new, update name if changed
@@ -204,6 +204,37 @@ for player in player_dump:
                      fleet_arena_rank=player['arena']['ship']['rank'],
                      squad_arena_rank=player['arena']['char']['rank'])
     ps.save()
+
+    for toon in player['roster']:
+        try:
+            t = Toon().get(Toon.toon_id == toon['id'])
+        except Toon.DoesNotExist:
+            t = Toon(toon_id=toon['id'], name=toon['nameKey'], player=p)
+            t.save()
+
+
+        for ability in toon['skills']:
+            try:
+                ad = AbilityDefinition().get(AbilityDefinition.ability_id == ability['id'])
+                if ad.tiers != ability['tiers'] or ad.is_zeta != ability['isZeta']:
+                    ad.tiers = ability['tiers']
+                    ad.is_zeta = ability['isZeta']
+                    ad.save()
+            except AbilityDefinition.DoesNotExist:
+                ad = AbilityDefinition(ability_id=ability['id'], tiers=ability['tiers'], is_zeta=ability['isZeta'])
+                ad.save()
+
+            try:
+                al = AbilityLevel().get(toon=t, tier=ability['tier'], ability_definition=ad)
+            except AbilityLevel.DoesNotExist:
+                al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
+                al.save()
+
+    end_time = datetime.datetime.now()
+    print(f'Finished player in {end_time - start_creation}')
+
+
+
 
 
 
