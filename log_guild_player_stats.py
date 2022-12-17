@@ -17,6 +17,9 @@ def getGuild(api_client, allycode):
     payload = {'allycodes': [allycode], 'language': "eng_us", 'enums': True}
     result = api_client.fetchGuilds(payload)
     return result
+print(getGuild(client, allycode))
+import sys
+sys.exit(0)
 
 
 def getGuildAllycodes(guild_dict):

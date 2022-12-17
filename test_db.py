@@ -152,86 +152,95 @@ def convert_gac_division(division):
     return 6 - (division//5)
 
 guilds_seen = {}
-for player in player_dump:
-    start_creation = datetime.datetime.now()
-    #breakpoint()
+toons_seen = {}
+AD_seen = {}
+with db.atomic() as transactoin:
+    for player in player_dump:
+        start_creation = datetime.datetime.now()
+        #breakpoint()
 
-    # Load current player, create if new, update name if changed
-    try:
-        p = Player().get(Player.allycode == player['allyCode'])
-        if p.name != player['name']:
-            p.name = player['name']
+        # Load current player, create if new, update name if changed
+        try:
+            p = Player().get(Player.allycode == player['allyCode'])
+            if p.name != player['name']:
+                p.name = player['name']
+                p.save()
+                print('name saved')
+        except Player.DoesNotExist:
+            p = Player(allycode=player['allyCode'], name=player['name'])
             p.save()
-            print('name saved')
-    except Player.DoesNotExist:
-        p = Player(allycode=player['allyCode'], name=player['name'])
-        p.save()
 
 
-    # Load player's guild, create if new, update name if changed
-    gid = player['guildRefId']
-    if gid in guilds_seen:
-        g = guilds_seen[gid]
-        print('found guild in map')
+        # Load player's guild, create if new, update name if changed
+        gid = player['guildRefId']
+        if gid in guilds_seen:
+            g = guilds_seen[gid]
+            print('found guild in map')
 
-    else:
-        try:
-            g = Guild().get(Guild.ref_id == player['guildRefId'])
-            if g.name != player['guildName']:
-                g.name = player['guildName']
+        else:
+            try:
+                g = Guild().get(Guild.ref_id == player['guildRefId'])
+                if g.name != player['guildName']:
+                    g.name = player['guildName']
+                    g.save()
+                print('foundu guild in db')
+            except Guild.DoesNotExist:
+                print('creating new guild')
+                g = Guild(ref_id=player['guildRefId'], name=player['guildName'])
                 g.save()
-            print('foundu guild in db')
-        except Guild.DoesNotExist:
-            print('creating new guild')
-            g = Guild(ref_id=player['guildRefId'], name=player['guildName'])
-            g.save()
 
 
-    guilds_seen[gid] = g
-    print(g)
+        guilds_seen[gid] = g
+        print(g)
 
 
-    gp_stats = parse_gp_stats(player['stats'])
-    grand_arena = player['grandArena'][-1] if len(player['grandArena']) else {'league': 'UNKNOWN', 'division': 'UNKNOWN', 'rank': 69420}
-    ps = PlayerStats(time=time,
-                     player=p,
-                     guild=g,
-                     ship_gp=gp_stats['ships'],
-                     toon_gp=gp_stats['toons'],
-                     gac_league=grand_arena['league'],
-                     gac_division=convert_gac_division(grand_arena['division']),
-                     gac_rank=grand_arena['rank'],
-                     fleet_arena_rank=player['arena']['ship']['rank'],
-                     squad_arena_rank=player['arena']['char']['rank'])
-    ps.save()
+        gp_stats = parse_gp_stats(player['stats'])
+        grand_arena = player['grandArena'][-1] if len(player['grandArena']) else {'league': 'UNKNOWN', 'division': 'UNKNOWN', 'rank': 69420}
+        ps = PlayerStats(time=time,
+                         player=p,
+                         guild=g,
+                         ship_gp=gp_stats['ships'],
+                         toon_gp=gp_stats['toons'],
+                         gac_league=grand_arena['league'],
+                         gac_division=convert_gac_division(grand_arena['division']),
+                         gac_rank=grand_arena['rank'],
+                         fleet_arena_rank=player['arena']['ship']['rank'],
+                         squad_arena_rank=player['arena']['char']['rank'])
+        ps.save()
 
-    for toon in player['roster']:
-        try:
-            t = Toon().get(Toon.toon_id == toon['id'])
-        except Toon.DoesNotExist:
-            t = Toon(toon_id=toon['id'], name=toon['nameKey'], player=p)
-            t.save()
-
-
-        for ability in toon['skills']:
+        for toon in player['roster']:
             try:
-                ad = AbilityDefinition().get(AbilityDefinition.ability_id == ability['id'])
-                if ad.tiers != ability['tiers'] or ad.is_zeta != ability['isZeta']:
-                    ad.tiers = ability['tiers']
-                    ad.is_zeta = ability['isZeta']
-                    ad.save()
-            except AbilityDefinition.DoesNotExist:
-                ad = AbilityDefinition(ability_id=ability['id'], tiers=ability['tiers'], is_zeta=ability['isZeta'])
-                ad.save()
+                t = Toon().get(Toon.toon_id == toon['id'])
+            except Toon.DoesNotExist:
+                t = Toon(toon_id=toon['id'], name=toon['nameKey'], player=p)
+                t.save()
 
-            try:
-                al = AbilityLevel().get(toon=t, tier=ability['tier'], ability_definition=ad)
-            except AbilityLevel.DoesNotExist:
+
+            for ability in toon['skills']:
+                ad = AD_seen.get(ability['id'])
+                if not ad:
+                    try:
+                        ad = AbilityDefinition().get(AbilityDefinition.ability_id == ability['id'])
+                        if ad.tiers != ability['tiers'] or ad.is_zeta != ability['isZeta']:
+                            ad.tiers = ability['tiers']
+                            ad.is_zeta = ability['isZeta']
+                            ad.save()
+                    except AbilityDefinition.DoesNotExist:
+                        ad = AbilityDefinition(ability_id=ability['id'], tiers=ability['tiers'], is_zeta=ability['isZeta'])
+                        ad.save()
+                    AD_seen[ability['id']] = ad
+
+                #try:
+                #    al = AbilityLevel().get(toon=t, tier=ability['tier'], ability_definition=ad)
+                #except AbilityLevel.DoesNotExist:
+                #    al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
+                #    al.save()
+
                 al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
                 al.save()
 
-    end_time = datetime.datetime.now()
-    print(f'Finished player in {end_time - start_creation}')
+        end_time = datetime.datetime.now()
+        print(f'Finished player in {end_time - start_creation}')
 
 
 
