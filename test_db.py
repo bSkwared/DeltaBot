@@ -74,11 +74,11 @@ tables_to_create.append(AbilityLevel)
 
 
 class ToonStats(BaseModel):
-    player_stats = PW.ForeignKeyField(PlayerStats, backref='toons')
-    gp = PW.IntegerField()
+    time = PW.ForeignKeyField(CollectionTime)
+    toon = PW.ForeignKeyField(Toon, backref='abilities')
     stars = PW.IntegerField()
     gear_level = PW.IntegerField()
-    relic_level = PW.IntegerField()
+    relic_level = PW.IntegerField(null=True)
     gear_slots_filled = PW.IntegerField()
 
 tables_to_create.append(ToonStats)
@@ -234,6 +234,22 @@ with db.atomic() as transactoin:
                     al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
                     al.save()
 
+
+                try:
+                    stars = toon['rarity']
+                    gear_level = toon['gear']
+                    relic_level = toon['relic']['currentTier'] if toon['relic'] else None
+                    gear_slots_filled = len(toon['equipped'])
+                    ts = ToonStats().get(ToonStats.toon == t and 
+                                         ToonStats.stars == stars and
+                                         ToonStats.gear_level == gear_level and
+                                         ToonStats.relic_level == relic_level and
+                                         ToonStats.gear_slots_filled == gear_slots_filled)
+                except ToonStats.DoesNotExist:
+                    ts = ToonStats(time=time, toon=t, stars=stars,
+                                   gear_level=gear_level, relic_level=relic_level,
+                                   gear_slots_filled=gear_slots_filled)
+                    ts.save()
                 #al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
                 #al.save()
 

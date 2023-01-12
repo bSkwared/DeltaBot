@@ -78,32 +78,29 @@ $ ls -l dev.db
 ls: dev.db: No such file or directory
 (venv)
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
-$ vi ally_passwd.txt
-(venv)
-blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
-$ python3.11 ./test_db.py
-2022-12-18 13:17:28.051820+00:00
+$ python3.11 test_db.py
+2022-12-18 14:02:59.849942+00:00
 creating new guild
-Finished all players in 0:00:10.635984
-Averaged 0:00:00.221583 per player
+Finished all players in 0:00:14.100121
+Averaged 0:00:00.293753 per player
 (venv)
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
 $ ls -l dev.db
--rw-r--r--  1 blasky  staff  2797568 Dec 18 05:17 dev.db
+-rw-r--r--  1 blasky  staff  2801664 Dec 18 06:03 dev.db
 (venv)
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
-$ vi ./test_db.py
+$ vi test_db.py
 (venv)
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
-$ python3.11 ./test_db.py
-2022-12-18 13:17:58.234526+00:00
+$ python3.11 test_db.py
+2022-12-18 14:03:32.475621+00:00
 foundu guild in db
-Finished all players in 0:00:05.091645
-Averaged 0:00:00.106076 per player
+Finished all players in 0:00:08.408138
+Averaged 0:00:00.175170 per player
 (venv)
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
 $ ls -l dev.db
--rw-r--r--  1 blasky  staff  2846720 Dec 18 05:18 dev.db
+-rw-r--r--  1 blasky  staff  2850816 Dec 18 06:03 dev.db
 (venv)
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
 $
