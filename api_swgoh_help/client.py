@@ -13,7 +13,7 @@ class Guild:
 
 class Player:
     def __init__(self, allycode, name, guild_id, ship_gp, character_gp, gac_league,
-                 gac_division, gac_rank, fleet_arena_rank, squad_arena_rank):
+                 gac_division, gac_rank, fleet_rank, squad_rank):
         self.allycode = allycode
         self.name = name
         self.guild_id = guild_id
@@ -22,8 +22,12 @@ class Player:
         self.gac_league = gac_league
         self.gac_division = gac_division
         self.gac_rank = gac_rank
-        self.fleet_arena_rank = fleet_arena_rank
-        self.squad_arena_rank = squad_arena_rank
+        self.fleet_rank = fleet_rank
+        self.squad_rank = squad_rank
+
+    @property
+    def total_gp(self):
+        return self.ship_gp + self.character_gp
 
 def convert_dict_to_guild(guild):
     roster = guild.get('roster', [])
@@ -58,11 +62,26 @@ def convert_gac_division(division):
     return 6 - (division//5)
 
 def convert_dict_to_player(player):
-    stats = parse_gp_stats(player['stats'])
+    gp = parse_gp_stats(player['stats'])
+    gac = parse_gac_stats(player['grandArena'])
 
-    return Player(player['allyCode'], player['guildRefId'], stats['ships'],
-                  stats['characters'], player['gac_league'], gac_division, gac_rank,
-                  fleet_rank, squad_rank)
+    return Player(player['allyCode'], player['name'], player['guildRefId'],
+                  gp['ships'], gp['characters'], gac['league'], gac['division'],
+                  gac['rank'], player['arena']['ship']['rank'],
+                  player['arena']['char']['rank'])
+
+
+def parse_players_list(players_list):
+    players_dict = {}
+    for player in players_list:
+        # Logic for removing duplicate players
+        if player['allyCode'] in players_dict:
+            continue
+
+        p = convert_dict_to_player(player)
+        players_dict[p.allycode] = p
+
+    return players_dict
 
 
 
@@ -78,28 +97,23 @@ class APIClient:
         self.client = api_swgoh_help.api_swgoh_help({'username': username,
                                                      'password': password})
 
-    def get_endpoint_list(allycodes, endpoint):
+    def get_endpoint_list(self, allycodes, endpoint):
         """Return json parsed result of call to endpoint.
 
         Parameters:
         allycodes (List[int]): List of allycodes to get guilds for
-        endpoint (str): Endpoint to hit, either 'player' or 'guild'
+        endpoint (str): Endpoint to hit, either 'players' or 'guilds'
 
         Returns:
         List[Dict]: List of raw dicts parsed from remote API.
         """
-        if endpoint == 'player':
-            data = self.client.fetchPlayers(allycodes)
-        elif endpoint == 'guild':
-            data = self.client.fetchGuilds(allycodes)
+        result = []
+        if endpoint == 'players':
+            result = self.client.fetchPlayers(allycodes)
+        elif endpoint == 'guilds':
+            result = self.client.fetchGuilds(allycodes)
         else:
             print(f'ERROR: {endpoint} is not a valid endpoint')
-
-        result = []
-        try:
-            result = json.loads(data)
-        except ValueError as e:
-            print(f'ERROR: Unable to parse json from {data} - {e}')
 
         assert isinstance(result, list), f'ERROR: expected a list but ' \
                                          f'{result} is a {type(result)}'
@@ -118,7 +132,7 @@ class APIClient:
         """
         assert isinstance(allycodes, list), f'{allycodes} must be a list, ' \
                                             f'not {type(allycodes)}'
-        guilds = get_endpoint_list(allycodes, 'guilds')
+        guilds = self.get_endpoint_list(allycodes, 'guilds')
         assert isinstance(guilds, list), f'Expected list, got {type(guilds)}: {guilds}'
 
         # Parse guilds into Guild classes
@@ -141,18 +155,10 @@ class APIClient:
         """
         assert isinstance(allycodes, list), f'{allycodes} must be a list, ' \
                                             f'not {type(allycodes)}'
-        guilds = get_endpoint_list(allycodes, 'players')
-        assert isinstance(guilds, list), f'Expected list, got {type(players)}: {player}'
+        players = self.get_endpoint_list(allycodes, 'players')
+        assert isinstance(players, list), f'Expected list, got {type(players)}: {player}'
 
         # Parse players into Player classes
-        players_dict = {}
-        for player in players:
-            # Logic for removing duplicate players
-            if player['allyCode'] in players_dict:
-                continue
+        return parse_players_list(players)
 
-            p = convert_dict_to_player(player)
-            players_dict[p.allycode] = p
-
-        return guilds_dict
 
