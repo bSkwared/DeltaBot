@@ -139,7 +139,6 @@ with open(sys.argv[1], 'r') as fp:
 c = ntplib.NTPClient()
 r = c.request('time.google.com')
 log_time = datetime.datetime.fromtimestamp(r.tx_time, datetime.timezone.utc)
-print(log_time)
 time, is_new_time = CollectionTime.get_or_create(time=log_time)
 if not is_new_time:
     print("ERROR: this time has already collected all statistics")
@@ -179,7 +178,7 @@ def get_stat_name_obj(stat_name):
 
 def get_or_create_mod(mod_id, shape, mod_set, primary_stat):
     try:
-        m = Mod().get(mod_id=mod_id)
+        m = Mod().get(Mod.mod_id == mod_id)
     except Mod.DoesNotExist:
         m = Mod(mod_id=mod_id, shape=shape, mod_set=mod_set,
                 primary_stat=primary_stat)
@@ -213,7 +212,7 @@ with db.atomic() as transactoin:
                 if g.name != player['guildName']:
                     g.name = player['guildName']
                     g.save()
-                print('foundu guild in db')
+                print('found guild in db')
             except Guild.DoesNotExist:
                 print('creating new guild')
                 g = Guild(ref_id=player['guildRefId'], name=player['guildName'])
@@ -260,27 +259,29 @@ with db.atomic() as transactoin:
                     AD_seen[ability['id']] = ad
 
                 try:
-                    al = AbilityLevel().get(toon=t, tier=ability['tier'], ability_definition=ad)
+                    al = AbilityLevel().get((AbilityLevel.toon == t) &
+                                            (AbilityLevel.tier == ability['tier']) &
+                                            (AbilityLevel.ability_definition == ad))
                 except AbilityLevel.DoesNotExist:
                     al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
                     al.save()
 
 
-                try:
-                    stars = toon['rarity']
-                    gear_level = toon['gear']
-                    relic_level = toon['relic']['currentTier'] if toon['relic'] else None
-                    gear_slots_filled = len(toon['equipped'])
-                    ts = ToonStats().get(ToonStats.toon == t and
-                                         ToonStats.stars == stars and
-                                         ToonStats.gear_level == gear_level and
-                                         ToonStats.relic_level == relic_level and
-                                         ToonStats.gear_slots_filled == gear_slots_filled)
-                except ToonStats.DoesNotExist:
-                    ts = ToonStats(time=time, toon=t, stars=stars,
-                                   gear_level=gear_level, relic_level=relic_level,
-                                   gear_slots_filled=gear_slots_filled)
-                    ts.save()
+            try:
+                stars = toon['rarity']
+                gear_level = toon['gear']
+                relic_level = toon['relic']['currentTier'] if toon['relic'] else None
+                gear_slots_filled = len(toon['equipped'])
+                ts = ToonStats().get((ToonStats.toon == t) &
+                                     (ToonStats.stars == stars) &
+                                     (ToonStats.gear_level == gear_level) &
+                                     (ToonStats.relic_level == relic_level) &
+                                     (ToonStats.gear_slots_filled == gear_slots_filled))
+            except ToonStats.DoesNotExist:
+                ts = ToonStats(time=time, toon=t, stars=stars,
+                               gear_level=gear_level, relic_level=relic_level,
+                               gear_slots_filled=gear_slots_filled)
+                ts.save()
 
             for mod in toon['mods']:
                 mod_id = mod['id']
@@ -294,11 +295,11 @@ with db.atomic() as transactoin:
                     color = mod['tier']
                     dots = mod['pips']
                     primary_value = str(mod['primaryStat']['value'])
-                    ms = ModStats().get(ModStats.mod == m and
-                                        ModStats.dots == dots and
-                                        ModStats.color == color and
-                                        ModStats.level == level and
-                                        ModStats.primary_value == primary_value)
+                    ms = ModStats().get((ModStats.mod == m) &
+                                        (ModStats.dots == dots) &
+                                        (ModStats.color == color) &
+                                        (ModStats.level == level) &
+                                        (ModStats.primary_value == primary_value))
 
                 except ModStats.DoesNotExist:
                     ms = ModStats(time=time, mod=m, dots=dots, color=color,
@@ -310,10 +311,10 @@ with db.atomic() as transactoin:
                     rolls = secondary['roll']
                     stat = get_stat_name_obj(secondary['unitStat'])
                     try:
-                        SecondaryStat().get(SecondaryStat.mod == m and
-                                            SecondaryStat.stat == stat and
-                                            SecondaryStat.value == value and
-                                            SecondaryStat.num_rolls == rolls)
+                        SecondaryStat().get((SecondaryStat.mod == m) &
+                                            (SecondaryStat.stat == stat) &
+                                            (SecondaryStat.value == value) &
+                                            (SecondaryStat.num_rolls == rolls))
                     except SecondaryStat.DoesNotExist:
                         SecondaryStat(time=time, mod=m, stat=stat, value=value,
                                       num_rolls=rolls).save()
@@ -321,70 +322,10 @@ with db.atomic() as transactoin:
 
 
 
-                '''
-                try:
-                    stars = toon['rarity']
-                    gear_level = toon['gear']
-                    relic_level = toon['relic']['currentTier'] if toon['relic'] else None
-                    gear_slots_filled = len(toon['equipped'])
-                    ts = ToonStats().get(ToonStats.toon == t and
-                                         ToonStats.stars == stars and
-                                         ToonStats.gear_level == gear_level and
-                                         ToonStats.relic_level == relic_level and
-                                         ToonStats.gear_slots_filled == gear_slots_filled)
-                except ToonStats.DoesNotExist:
-                    ts = ToonStats(time=time, toon=t, stars=stars,
-                                   gear_level=gear_level, relic_level=relic_level,
-                                   gear_slots_filled=gear_slots_filled)
-                    ts.save()
-                '''
-                #al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
-                #al.save()
-'''
-class Mod(BaseModel):
-    mod_id = PW.CharField(unique=True)
-    shape = PW.IntegerField()
-    mod_set = PW.IntegerField()
-    primary_stat = PW.CharField()
-
-class ModStats(BaseModel):
-    time = PW.ForeignKeyField(CollectionTime)
-    mod = PW.ForeignKeyField(Mod, backref='stats')
-    dots = PW.IntegerField()
-    color = PW.CharField()
-    level = PW.IntegerField()
-    primary_value = PW.CharField()
-
-class SecondaryStat(BaseModel):
-    time = PW.ForeignKeyField(CollectionTime)
-    mod = PW.ForeignKeyField(Mod, backref='secondaries')
-    stat = PW.CharField()
-    value = PW.CharField()
-    num_rolls = PW.IntegerField()
-
-class ModAssignment(BaseModel):
-    time = PW.ForeignKeyField(CollectionTime)
-    toon = PW.ForeignKeyField(Toon, backref='mods')
-    mod = PW.ForeignKeyField(Mod, backref='toon')
-'''
 
 
 end_time = datetime.datetime.now()
 print(f'Finished all players in {end_time - start_creation}')
 print(f'Averaged {(end_time - start_creation)/len(player_dump)} per player')
-
-
-
-
-
-
-    #sd = StatsDump(guild=Guild(ref_id=player['guildRefId']), timestamp=log_time, player=p)
-    #sd.save()
-
-    #for unit in player['roster']:
-    #    t = Toon(stats_dump=sd, stars=unit['rarity'], gear_level=unit['gear'], relic_level=unit['relic']['currentTier'])
-
-
-
 
 
