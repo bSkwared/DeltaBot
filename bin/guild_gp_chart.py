@@ -30,4 +30,4 @@ print(dates)
 print(gps)
 
 fig = px.line({'Day': dates, 'GP': gps}, x='Day', y='GP')
-fig.write_image("fig1.png")
+fig.write_image("tmp/fig1.png")
