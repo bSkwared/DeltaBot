@@ -2,6 +2,7 @@ import peewee as PW
 from datetime import datetime, timezone
 import ntplib
 
+global_db = None
 database_proxy = PW.DatabaseProxy()
 
 class BaseModel(PW.Model):
@@ -33,14 +34,33 @@ class Player(BaseModel):
     fleet_rank = PW.IntegerField()
     squad_rank = PW.IntegerField()
 
+
+class Toon(BaseModel):
+    toon_id = PW.CharField(unique=True)
+    name = PW.CharField()
+    player = PW.ForeignKeyField(Player)
+
+
+class ToonStats(BaseModel):
+    time = PW.ForeignKeyField(CollectionTime)
+    toon = PW.ForeignKeyField(Toon)
+    stars = PW.IntegerField()
+    gear_level = PW.IntegerField()
+    relic_level = PW.IntegerField()
+
+
 def setup_warehouse(db_filename):
     db = PW.SqliteDatabase(db_filename)
+    #global_db = PW.SqliteDatabase(db_filename)
     database_proxy.initialize(db)
+    #database_proxy.initialize(global_db)
 
     tables = [
         CollectionTime,
         Guild,
         Player,
+        Toon,
+        ToonStats,
     ]
     db.create_tables(tables)
 
@@ -74,6 +94,40 @@ def get_or_create_guild(client_guild, time):
     return guild
 
 
+def get_toon(toon):
+    try:
+        return Toon().get(Toon.toon_id == toon.toon_id)
+    except Toon.DoesNotExist:
+        return None
+
+
+def get_toon_stats(warehouse_toon, client_toon):
+    ct = client_toon
+    try:
+        return ToonStats().get((ToonStats.toon == warehouse_toon) &
+                               (ToonStats.stars == ct.stars) &
+                               (ToonStats.gear_level == ct.gear_level) &
+                               (ToonStats.relic_level == ct.relic_level))
+    except ToonStats.DoesNotExist:
+        return None
+
+
+def update_roster(client_player, warehouse_player, time):
+    cp = client_player
+    wp = warehouse_player
+    for ct in cp.roster:
+        t = get_toon(ct)
+        if not t:
+            t = Toon(toon_id=ct.toon_id, name=ct.name, player=wp)
+            t.save()
+
+        ts = get_toon_stats(t, ct)
+        if not ts:
+            ts = ToonStats(time=time, toon=t, stars=ct.stars,
+                           gear_level=ct.gear_level, relic_level=ct.relic_level)
+            ts.save()
+
+
 def get_or_create_player(client_player, time):
     """Read player from database or if it has been updated, update the database.
 
@@ -103,13 +157,16 @@ def get_or_create_player(client_player, time):
     except Player.DoesNotExist:
         pass
     '''
-
-    player = Player(time=time, allycode=client_player.allycode, name=client_player.name,
-                    guild_id=client_player.guild_id, ship_gp=client_player.ship_gp,
-                    character_gp=client_player.character_gp, gac_league=client_player.gac_league,
-                    gac_division=client_player.gac_division, gac_rank=client_player.gac_rank,
-                    fleet_rank=client_player.fleet_rank, squad_rank=client_player.squad_rank)
+    p = client_player
+    player = Player(time=time, allycode=p.allycode, name=p.name,
+                    guild_id=p.guild_id, ship_gp=p.ship_gp,
+                    character_gp=p.character_gp, gac_league=p.gac_league,
+                    gac_division=p.gac_division, gac_rank=p.gac_rank,
+                    fleet_rank=p.fleet_rank, squad_rank=p.squad_rank)
     player.save()
+
+    update_roster(client_player, player, time)
+
     return player
 
 
@@ -117,7 +174,10 @@ def get_current_datetime():
     try:
         c = ntplib.NTPClient()
         r = c.request('pool.ntp.org')
-        return datetime.fromtimestamp(r.tx_time, timezone.utc).replace(microsecond=0).replace(tzinfo=None)
+        return (datetime
+                .fromtimestamp(r.tx_time, timezone.utc)
+                .replace(microsecond=0)
+                .replace(tzinfo=None))
     except Exception as e:
         print('ERROR": Unable to reach ntp server - {e}')
         return datetime.now()
@@ -149,11 +209,12 @@ def save_data(guilds, players, collection_time):
     if not is_new_time:
         print("WARN: this time has already saved stats")
 
-    for g in guilds:
-        get_or_create_guild(g, time)
+    with database_proxy.atomic():
+        for g in guilds:
+            get_or_create_guild(g, time)
 
-    for p in players:
-        get_or_create_player(p, time)
+        for p in players:
+            get_or_create_player(p, time)
 
 def get_allycodes():
     ps = Player().select(PW.fn.DISTINCT(Player.allycode))
