@@ -1,8 +1,4 @@
 from api_swgoh_help import api_swgoh_help
-import sys
-import json
-from datetime import datetime, timezone
-import ntplib
 
 class Guild:
     def __init__(self, guild_id, name, description, member_allycodes):
@@ -84,7 +80,6 @@ def parse_players_list(players_list):
     return players_dict
 
 
-
 class APIClient:
     def __init__(self, username, password):
         """
@@ -114,6 +109,12 @@ class APIClient:
             result = self.client.fetchGuilds(allycodes)
         else:
             print(f'ERROR: {endpoint} is not a valid endpoint')
+
+        if isinstance(result, dict) and result['status_code'] == 404 \
+                and ("Could not find any guilds affiliated" in result['message']
+                     and endpoint == 'guilds'):
+            return []
+
 
         assert isinstance(result, list), f'ERROR: expected a list but ' \
                                          f'{result} is a {type(result)}'
