@@ -1,4 +1,5 @@
 from api_swgoh_help import api_swgoh_help
+import sys
 
 class Guild:
     def __init__(self, guild_id, name, description, member_allycodes):
@@ -9,7 +10,7 @@ class Guild:
 
 class Player:
     def __init__(self, allycode, name, guild_id, ship_gp, character_gp, gac_league,
-                 gac_division, gac_rank, fleet_rank, squad_rank):
+                 gac_division, gac_rank, fleet_rank, squad_rank, roster):
         self.allycode = allycode
         self.name = name
         self.guild_id = guild_id
@@ -20,10 +21,21 @@ class Player:
         self.gac_rank = gac_rank
         self.fleet_rank = fleet_rank
         self.squad_rank = squad_rank
+        self.roster = roster
 
     @property
     def total_gp(self):
         return self.ship_gp + self.character_gp
+
+
+class Toon:
+    def __init__(self, toon_id, name, stars, gear_level, relic_level):
+        self.toon_id = toon_id
+        self.name = name
+        self.stars = stars
+        self.gear_level = gear_level
+        self.relic_level = relic_level
+
 
 def convert_dict_to_guild(guild):
     roster = guild.get('roster', [])
@@ -32,6 +44,8 @@ def convert_dict_to_guild(guild):
     member_allycodes = [m.get('allyCode', 0) for m in roster]
     if not all(member_allycodes):
         print(f'WARN: {guild["name"]} has missing allycodes')
+        print(f'{roster}')
+        return None
     return Guild(guild['id'], guild['name'], guild['desc'], member_allycodes)
 
 def parse_gp_stats(stats):
@@ -60,11 +74,12 @@ def convert_gac_division(division):
 def convert_dict_to_player(player):
     gp = parse_gp_stats(player['stats'])
     gac = parse_gac_stats(player['grandArena'])
+    roster = parse_roster(player['roster'])
 
     return Player(player['allyCode'], player['name'], player['guildRefId'],
                   gp['ships'], gp['characters'], gac['league'], gac['division'],
                   gac['rank'], player['arena']['ship']['rank'],
-                  player['arena']['char']['rank'])
+                  player['arena']['char']['rank'], roster)
 
 
 def parse_players_list(players_list):
@@ -78,6 +93,24 @@ def parse_players_list(players_list):
         players_dict[p.allycode] = p
 
     return players_dict
+
+def parse_relic_level(relic):
+    if not relic:
+        return 0
+
+    # currentTier is set to 1 until g13. At g13, it's set to 2.
+    # Then, it is set to 3 at relic 1 and increases with each relic level
+    # eg, ct=4 is relic 2, ct=5 is relic 3, ...
+    return max(0, relic.get('currentTier', 0) - 2)
+
+
+def parse_roster(roster):
+    toons = []
+    for t in roster:
+        toons.append(Toon(t['id'], t['nameKey'], t['rarity'], t['gear'],
+                          parse_relic_level(t['relic'])))
+
+    return toons
 
 
 class APIClient:
@@ -102,27 +135,25 @@ class APIClient:
         Returns:
         List[Dict]: List of raw dicts parsed from remote API.
         """
+        endpoints = {
+                'players': self.client.fetchPlayers,
+                'guilds': self.client.fetchGuilds,
+        }
+        assert endpoint in endpoints.keys(), f'{endpoint} is an invalid endpoint'
+
         result = []
-        if endpoint == 'players':
-            result = self.client.fetchPlayers(allycodes)
-        elif endpoint == 'guilds':
-            result = self.client.fetchGuilds(allycodes)
-        else:
-            print(f'ERROR: {endpoint} is not a valid endpoint')
+        for _ in range(3):
+            result = endpoints[endpoint](allycodes)
+            if isinstance(result, list):
+                return result
 
-        try:
-            if isinstance(result, dict) and result['status_code'] == 404 \
-                    and endpoint == 'guilds' \
-                    and "Could not find any guilds affiliated" in result['message']:
+            elif endpoint == 'guilds' and isinstance(result, dict) \
+                    and result.get('status_code', 0) == 404 \
+                    and "Could not find any guilds affiliated" in result.get('message', ''):
                 return []
-        except Exception as e:
-            print(f'ERROR: Unable to parse {result} of type {type(result)}')
-            return []
 
-        assert isinstance(result, list), f'ERROR: expected a list but ' \
-                                         f'{result} is a {type(result)}'
-
-        return result
+        print(f'ERROR: Unable to parse {result} of type {type(result)}, expected list')
+        return []
 
 
     def get_guilds(self, allycodes):
@@ -136,14 +167,31 @@ class APIClient:
         """
         assert isinstance(allycodes, list), f'{allycodes} must be a list, ' \
                                             f'not {type(allycodes)}'
-        guilds = self.get_endpoint_list(allycodes, 'guilds')
-        assert isinstance(guilds, list), f'Expected list, got {type(guilds)}: {guilds}'
 
-        # Parse guilds into Guild classes
-        guilds_dict = {}
-        for guild in guilds:
-            g = convert_dict_to_guild(guild)
-            guilds_dict[g.guild_id] = g
+        # Add retry
+        for _ in range(3):
+            guilds = self.get_endpoint_list(allycodes, 'guilds')
+            assert isinstance(guilds, list), f'Expected list, got {type(guilds)}: {guilds}'
+
+            # Parse guilds into Guild classes
+            guilds_dict = {}
+            found_acs = set()
+            found_mistake = False
+            for guild in guilds:
+                g = convert_dict_to_guild(guild)
+                if g == None:
+                    found_mistake = True
+                    break
+                guilds_dict[g.guild_id] = g
+                found_acs.update(g.member_allycodes)
+
+            # Check that all allycodes were returned
+            found_all_acs = set(allycodes).issubset(found_acs)
+            if not found_mistake and found_all_acs:
+                break
+
+        else:
+            assert False, f'Unable to load guilds for allycodes {allycodes}'
 
         return guilds_dict
 
@@ -159,10 +207,24 @@ class APIClient:
         """
         assert isinstance(allycodes, list), f'{allycodes} must be a list, ' \
                                             f'not {type(allycodes)}'
-        players = self.get_endpoint_list(allycodes, 'players')
-        assert isinstance(players, list), f'Expected list, got {type(players)}: {player}'
+
+        expected_acs = set(allycodes)
+        for _ in range(3):
+            players = self.get_endpoint_list(allycodes, 'players')
+            assert isinstance(players, list), f'Expected list, got {type(players)}: {player}'
+            players_dict = parse_players_list(players)
+
+            found_acs = set(players_dict.keys())
+            if expected_acs == found_acs:
+                break
+            else:
+                print(f'WARN: When attempting to load {allycodes}, only found {found_acs}')
+
+        else:
+            assert False, f'Unable to load players for allycodes {allycodes}'
+
 
         # Parse players into Player classes
-        return parse_players_list(players)
+        return players_dict
 
 
