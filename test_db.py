@@ -126,7 +126,7 @@ db.create_tables(tables_to_create)
 #Player(allycode=917787877, name='RedFox').save()
 
 player_dump = {}
-with open('guild_player_stats.json', 'r') as fp:
+with open('guild_player_stats_12_18_22.json', 'r') as fp:
     player_dump = json.load(fp)
 
 
@@ -154,9 +154,9 @@ def convert_gac_division(division):
 guilds_seen = {}
 toons_seen = {}
 AD_seen = {}
+start_creation = datetime.datetime.now()
 with db.atomic() as transactoin:
     for player in player_dump:
-        start_creation = datetime.datetime.now()
         #breakpoint()
 
         # Load current player, create if new, update name if changed
@@ -175,7 +175,6 @@ with db.atomic() as transactoin:
         gid = player['guildRefId']
         if gid in guilds_seen:
             g = guilds_seen[gid]
-            print('found guild in map')
 
         else:
             try:
@@ -191,7 +190,6 @@ with db.atomic() as transactoin:
 
 
         guilds_seen[gid] = g
-        print(g)
 
 
         gp_stats = parse_gp_stats(player['stats'])
@@ -230,17 +228,18 @@ with db.atomic() as transactoin:
                         ad.save()
                     AD_seen[ability['id']] = ad
 
-                #try:
-                #    al = AbilityLevel().get(toon=t, tier=ability['tier'], ability_definition=ad)
-                #except AbilityLevel.DoesNotExist:
-                #    al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
-                #    al.save()
+                try:
+                    al = AbilityLevel().get(toon=t, tier=ability['tier'], ability_definition=ad)
+                except AbilityLevel.DoesNotExist:
+                    al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
+                    al.save()
 
-                al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
-                al.save()
+                #al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
+                #al.save()
 
-        end_time = datetime.datetime.now()
-        print(f'Finished player in {end_time - start_creation}')
+end_time = datetime.datetime.now()
+print(f'Finished all players in {end_time - start_creation}')
+print(f'Averaged {(end_time - start_creation)/len(player_dump)} per player')
 
 
 
