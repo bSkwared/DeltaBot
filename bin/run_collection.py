@@ -23,6 +23,11 @@ def main(args):
     for allycode in known_allycodes:
         if allycode in guild_found:
             continue
+        cur_player = client.get_players([allycode])
+        print(cur_player)
+        if not cur_player[allycode].guild_id:
+            # Player not in guild, so calling get_guilds will take forever and fail
+            continue
         g = client.get_guilds([allycode])
         for guild in g.values():
             print(f'Found guild {guild.name} with members {guild.member_allycodes}')
