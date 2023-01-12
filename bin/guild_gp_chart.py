@@ -29,5 +29,5 @@ dates, gps = zip(*progress)
 print(dates)
 print(gps)
 
-fig = px.line({'Day': dates, 'GP': gps}, x='Day', y='GP')
+fig = px.line({'Date': dates, 'GP': gps}, x='Date', y='GP')
 fig.write_image("tmp/fig1.png")
