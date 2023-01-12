@@ -1,4 +1,6 @@
 import peewee as PW
+from datetime import datetime, timezone
+import ntplib
 
 database_proxy = PW.DatabaseProxy()
 
@@ -62,8 +64,8 @@ def get_or_create_guild(client_guild, time):
         pass
 
     # If name/description are changed or guild doesn't exist, create a new entry
-    guild = Guild(time, client_guild.guild_id, client_guild.name,
-                  client_guild.description)
+    guild = Guild(time=time, guild_id=client_guild.guild_id,
+                  name=client_guild.name, description=client_guild.description)
     guild.save()
     return guild
 
@@ -94,7 +96,6 @@ def get_or_create_player(client_player, time):
     except Player.DoesNotExist:
         pass
 
-    print(f'blake: time {time}')
     player = Player(time=time, allycode=client_player.allycode, name=client_player.name,
                     guild_id=client_player.guild_id, ship_gp=client_player.ship_gp,
                     character_gp=client_player.character_gp, gac_league=client_player.gac_league,
@@ -103,6 +104,11 @@ def get_or_create_player(client_player, time):
     player.save()
     return player
 
+
+def get_current_datetime():
+    c = ntplib.NTPClient()
+    r = c.request('pool.ntp.org')
+    return datetime.fromtimestamp(r.tx_time, timezone.utc).replace(microsecond=0)
 
 def save_data(guilds, players, collection_time):
     """Save guilds and players into database. Only updated if there is a change.
@@ -122,4 +128,7 @@ def save_data(guilds, players, collection_time):
     for p in players:
         get_or_create_player(p, time)
 
+def get_allycodes():
+    ps = Player().select(PW.fn.DISTINCT(Player.allycode))
+    return [p.allycode for p in ps]
 
