@@ -54,6 +54,9 @@ def get_or_create_guild(client_guild, time):
     Returns:
     data.Guild: Most recent Guild object from the database, whether new or not.
     """
+    # For now, we will just save everything since it will make this easier
+    # TODO: optimize db to only store updates
+    '''
     try:
         # Try to read guild and verify name and description are unchanged
         return Guild().get((Guild.guild_id == client_guild.guild_id) &
@@ -62,6 +65,7 @@ def get_or_create_guild(client_guild, time):
 
     except Guild.DoesNotExist:
         pass
+    '''
 
     # If name/description are changed or guild doesn't exist, create a new entry
     guild = Guild(time=time, guild_id=client_guild.guild_id,
@@ -80,6 +84,9 @@ def get_or_create_player(client_player, time):
     Returns:
     data.Player: Most recent Player object from the database, whether new or not.
     """
+    # For now, we will just save everything since it will make this easier
+    # TODO: optimize db to only store updates
+    '''
     try:
         # Try to read player and verify name and description are unchanged
         return Player.get((Player.allycode == client_player.allycode) &
@@ -95,6 +102,7 @@ def get_or_create_player(client_player, time):
 
     except Player.DoesNotExist:
         pass
+    '''
 
     player = Player(time=time, allycode=client_player.allycode, name=client_player.name,
                     guild_id=client_player.guild_id, ship_gp=client_player.ship_gp,
@@ -106,12 +114,31 @@ def get_or_create_player(client_player, time):
 
 
 def get_current_datetime():
-    c = ntplib.NTPClient()
-    r = c.request('pool.ntp.org')
-    return datetime.fromtimestamp(r.tx_time, timezone.utc).replace(microsecond=0)
+    try:
+        c = ntplib.NTPClient()
+        r = c.request('pool.ntp.org')
+        return datetime.fromtimestamp(r.tx_time, timezone.utc).replace(microsecond=0).replace(tzinfo=None)
+    except Exception as e:
+        print('ERROR": Unable to reach ntp server - {e}')
+        return datetime.now()
+
+def get_latest_guild_members(guild_id):
+    latest_time = (Player
+                   .select(PW.fn.MAX(Player.time))
+                   .where(Player.guild_id == guild_id)).get()
+    print(f'{latest_time.time.time}')
+
+    return get_guild_members(guild_id, latest_time.time)
+
+
+def get_guild_members(guild_id, time):
+    return (Player
+            .select()
+            .where((Player.guild_id == guild_id)
+                 & (Player.time == time)))
 
 def save_data(guilds, players, collection_time):
-    """Save guilds and players into database. Only updated if there is a change.
+    """Save guilds and players into database. (not true atm: Only updated if there is a change).
 
     Parameters:
     collection_time (datetime): Time of data collection
