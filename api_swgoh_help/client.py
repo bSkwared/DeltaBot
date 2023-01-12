@@ -110,11 +110,14 @@ class APIClient:
         else:
             print(f'ERROR: {endpoint} is not a valid endpoint')
 
-        if isinstance(result, dict) and result['status_code'] == 404 \
-                and ("Could not find any guilds affiliated" in result['message']
-                     and endpoint == 'guilds'):
+        try:
+            if isinstance(result, dict) and result['status_code'] == 404 \
+                    and endpoint == 'guilds' \
+                    and "Could not find any guilds affiliated" in result['message']:
+                return []
+        except Exception as e:
+            print(f'ERROR: Unable to parse {result} of type {type(result)}')
             return []
-
 
         assert isinstance(result, list), f'ERROR: expected a list but ' \
                                          f'{result} is a {type(result)}'
