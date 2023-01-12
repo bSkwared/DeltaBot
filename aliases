@@ -1,0 +1,75 @@
+#
+# Executes commands at the start of an interactive session.
+#
+# Authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
+
+# Source Prezto.
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
+
+# Customize to your needs...
+
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+alias dev="~/go"
+alias orch="~/go_orch"
+
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+alias pdussh="ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-dss -oCiphers=+aes256-cbc"
+ssh-add /Users/blasky/.ssh/id_pure_root
+ssh-add /Users/blasky/.ssh/id_rsa
+
+pull_ppkg() {
+        echo "wget -O- $1|grep ppkg|cut -d= -f2-|xargs wget"
+        echo "pureinstall `curl $1 2>/dev/null|grep ppkg_url| rev | cut -d/ -f 1 | rev`"
+        echo "init 6"
+}
+
+alias gl="git log "
+alias glo="git log --oneline "
+alias gloh="git log --oneline | head "
+alias glp="git log --patch "
+alias gls="git log --pretty=format:'%s' "
+alias gg="git grep -n "
+alias ga="git add"
+alias gb="git branch"
+alias gbd="git branch -d"
+alias gc="git commit"
+alias gca="git commit --amend"
+alias gst="git status"
+alias gdh="git diff \"HEAD^\""
+alias gout="git checkout"
+alias gcp="git cherry-pick"
+alias gcpa="git cherry-pick --abort"
+alias gcpc="git cherry-pick --continue"
+alias gp="git push origin"
+alias gpf="git push origin --force-with-lease"
+alias gra="git rebase --abort"
+alias grc="git rebase --continue"
+alias gri="git rebase --interactive"
+alias pp="phtest post"
+alias ppp="phtest post p_flow"
+alias pur="cd ~/work/purity"
+alias rpur="cd ~/readonly/purity"
+alias lcat="~/scripts/linecat.sh"
+alias 31="reset ; ssh -A dev-blasky2 -t tmux a -t 3_1"
+alias ft="reset ; ssh -A dev-blasky2 -t tmux a -t fixtest"
+alias 32="reset ; ssh -A dev-blasky2 -t tmux a -t 3_2"
+alias 33="reset ; ssh -A dev-blasky2 -t tmux a -t 3_3"
+alias devfixtest="reset ; ssh -A dev-blasky2 -t tmux a -t fixtest"
+export PIP_INDEX_URL=https://pypi.dev.purestorage.com/pure/stable/
+
+
+alias orchestrator="PYTHONPATH=~/work/pure_tools/.. ~/work/pure_tools/ci/mockingbird/webapps/orchestrator/cli/orchestrator.py"
+
+
+set_pb_vars () {
+        PURITY_SRC=$(git rev-parse --show-toplevel 2>/dev/null);
+        [[ -d $PURITY_SRC/pb/bin ]] || { echo "Please run from within your purity checkout."; return 1; }
+        export PURITY_SRC
+        export PYTHONPATH=$PURITY_SRC/pb/pb-py:$PYTHONPATH
+        export PATH=$PURITY_SRC/pb/bin:$PATH
+}
