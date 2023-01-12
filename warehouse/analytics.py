@@ -12,37 +12,7 @@ def get_guild_gp_progress(guild_id, begin, end):
 
     Returns:
     List((datetime, int)): List of tuples with time and GP, chronologically
-
     '''
-    times = (WD.CollectionTime
-             .select()
-             .order_by(WD.CollectionTime.time.desc()))
-    last_p = {}
-    min_time = {}
-    min_players = WD.Player.select(PW.fn.MIN(WD.Player.time), WD.Player.allycode).group_by(WD.Player.allycode)
-    for p in min_players:
-        min_time[p.allycode] = p.time
-
-    for t in times:
-        print(f'Checking time {t}')
-        all_ps = WD.Player.select().where(WD.Player.time == t)
-        not_seen = set(last_p.keys())
-        for p in all_ps:
-            print(f'Checking player {p}')
-            if p.allycode in not_seen:
-                not_seen.remove(p.allycode)
-            last_p[p.allycode] = p
-
-        for p in not_seen:
-            ps = last_p[p]
-            print(type(ps.time.time))
-            print(type(min_time[ps.allycode].time))
-            print(f'{ps.time.time} > {min_time[ps.allycode].time}')
-            if ps.time.time > min_time[ps.allycode].time:
-                ps.id = None
-                ps.time = t
-                ps.save()
-
     times = (WD.CollectionTime
              .select()
              .where((begin < WD.CollectionTime.time)
