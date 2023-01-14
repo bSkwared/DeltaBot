@@ -107,7 +107,7 @@ def parse_relic_level(relic):
 def parse_roster(roster):
     toons = []
     for t in roster:
-        toons.append(Toon(t['id'], t['nameKey'], t['rarity'], t['gear'],
+        toons.append(Toon(t['id'], t['nameKey'] if t['nameKey'] else t['defId'], t['rarity'], t['gear'],
                           parse_relic_level(t['relic'])))
 
     return toons
