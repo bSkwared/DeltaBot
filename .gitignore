@@ -1,4 +1,4 @@
-auth_config.json
+auth.py
 *.pyc
 venv/
 *.sw*
