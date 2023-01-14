@@ -6,15 +6,14 @@ import ntplib
 import json
 import os
 import datetime
+import config.auth
 
 
 
 def main(args):
     is_prod = '--prod' in args
 
-    with open(config.AUTH_CONFIG, 'r') as fp:
-        auth = json.load(fp)
-    client = ash_client.APIClient(username=auth['username'], password=auth['password'])
+    client = ash_client.APIClient(username=config.auth.username, password=config.auth.password)
 
     data.setup_warehouse(config.PROD_DB if is_prod else config.DEV_DB)
     known_allycodes = data.get_allycodes()
