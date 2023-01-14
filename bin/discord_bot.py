@@ -69,9 +69,18 @@ def update_unit_id_to_name():
 
     GLOBAL['unit_id_to_name'] = id_to_name
 
+def get_guild_data(gID):
+    for _ in range(3):
+        guild = comlink.get_guild(gID)
+        if isinstance(guild, dict):
+            return guild
+
+    return {}
 
 def update_guild():
-    GLOBAL['guild'] = comlink.get_guild(guild_id)
+    guild = get get_guild_data(guild_id)
+    if guild:
+        GLOBAL['guild'] = guild
 
 def get_player_data(pID):
     player = comlink.get_player(player_id=pID)
