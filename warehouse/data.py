@@ -116,6 +116,9 @@ def update_roster(client_player, warehouse_player, time):
     cp = client_player
     wp = warehouse_player
     for ct in cp.roster:
+        if not ct.name:
+            print(f'ERROR: {ct.name} is empty for {ct.toon_id}')
+            continue
         t = get_toon(ct)
         if not t:
             t = Toon(toon_id=ct.toon_id, name=ct.name, player=wp)
