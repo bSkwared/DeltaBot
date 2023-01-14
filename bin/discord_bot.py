@@ -18,8 +18,6 @@ logger.addHandler(handler)
 
 guru_log.add("/tmp/deltabot.log", backtrace=True, diagnose=True)
 
-with open(config.AUTH_CONFIG, 'r') as fp:
-    auth = json.load(fp)
 
 BYPASS_GEAR_LEVEL = False
 comlink = SwgohComlink(url='http://localhost:3200')
@@ -27,9 +25,10 @@ player_data = comlink.get_player(917787877)
 player_data['name']
 guild_id = player_data['guildId']
 DELTABOT_TEST = 1062981461227077694
+DELTABOT_PROD = 1063654416529494016
 BS_TEST = 1062980772736286740
 cur_chan = BS_TEST
-cur_chan = DELTABOT_TEST
+cur_chan = DELTABOT_PROD
 GLOBAL_PATH = '/home/server/source/DeltaBot/tmp/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
