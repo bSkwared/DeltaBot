@@ -19,7 +19,7 @@ logger.addHandler(handler)
 guru_log.add("/tmp/deltabot.log", backtrace=True, diagnose=True)
 
 
-BYPASS_GEAR_LEVEL = False
+BYPASS_MIN_PROGRESS = True
 comlink = SwgohComlink(url='http://localhost:3200')
 player_data = comlink.get_player(917787877)
 player_data['name']
@@ -27,9 +27,9 @@ guild_id = player_data['guildId']
 DELTABOT_TEST = 1062981461227077694
 DELTABOT_PROD = 1063654416529494016
 BS_TEST = 1062980772736286740
-cur_chan = BS_TEST
 cur_chan = DELTABOT_PROD
-GLOBAL_PATH = '/home/server/source/DeltaBot/tmp/delta.json'
+cur_chan = DELTABOT_TEST
+GLOBAL_PATH = '/home/server/source/TestDeltaBot/DeltaBot/tmp/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
 GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'updates': {}, 'cur_seq': 0}
@@ -217,9 +217,9 @@ class MyClient(disnake.Client):
                                 msg.append(f'Relic level: {stats["latest_relic"]}')
                             pmsg.append('\n'.join(msg))
                         else:
-                            if stats['initial_stars'] != stats['latest_stars'] and stats['latest_stars'] == 7:
+                            if stats['initial_stars'] != stats['latest_stars'] and (stats['latest_stars'] == 7 or BYPASS_MIN_PROGRESS):
                                 msg.append(f'Stars: {stats["initial_stars"]} -> {stats["latest_stars"]}')
-                            if stats['initial_gear'] != stats['latest_gear'] and stats['latest_gear'] >= 12:
+                            if stats['initial_gear'] != stats['latest_gear'] and (stats['latest_gear'] >= 12 or BYPASS_MIN_PROGRESS):
                                 msg.append(f'Gear: {stats["initial_gear"]} -> {stats["latest_gear"]}')
                             if stats['initial_relic'] != stats['latest_relic']:
                                 msg.append(f'Relic: {stats["initial_relic"]} -> {stats["latest_relic"]}')
