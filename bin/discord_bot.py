@@ -78,7 +78,7 @@ def get_guild_data(gID):
     return {}
 
 def update_guild():
-    guild = get get_guild_data(guild_id)
+    guild = get_guild_data(guild_id)
     if guild:
         GLOBAL['guild'] = guild
 
