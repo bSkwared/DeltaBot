@@ -2,13 +2,16 @@ import datetime
 from loguru import logger as guru_log
 import os
 import asyncio
-import config.config as config
+import config.config as CFG
 import disnake
+import stackprinter
 import json
 from swgoh_comlink import SwgohComlink
 import config.auth
 
 import logging
+print(dir(CFG))
+print(CFG.base_dir)
 
 logger = logging.getLogger('disnake')
 logger.setLevel(logging.DEBUG)
@@ -19,6 +22,8 @@ logger.addHandler(handler)
 guru_log.add("/tmp/deltabot.log", backtrace=True, diagnose=True)
 
 
+SLEEP_S = 30
+SEQ_DELAY = 3
 BYPASS_MIN_PROGRESS = True
 comlink = SwgohComlink(url='http://localhost:3200')
 player_data = comlink.get_player(917787877)
@@ -32,7 +37,7 @@ cur_chan = DELTABOT_TEST
 GLOBAL_PATH = '/home/server/source/TestDeltaBot/DeltaBot/tmp/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
-GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'updates': {}, 'cur_seq': 0}
+GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0}
 def log(msg):
     guru_log.info(f'{datetime.datetime.now()}: {msg}')
 
@@ -128,9 +133,7 @@ class MyClient(disnake.Client):
 
             last_players = {}
             players = {}
-            GLOBAL['cur_seq'] = 0
             last_updated_names = -100
-            GLOBAL['player_updates'] = {}
             # pID: {
             #     'last_updated': cur_seq,
             #     'toons': {
@@ -202,20 +205,20 @@ class MyClient(disnake.Client):
 
                 deleted_keys = []
                 for pID, update in GLOBAL['player_updates'].items():
-                    if update['last_updated'] + 3 > GLOBAL['cur_seq']:
+                    if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
                         continue
 
-                    deleted_keys.append(pID)
-                    pmsg = []
+                    player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
+                    have_update = False
                     for name, stats in update['toons'].items():
+                        embed = disnake.Embed(title=player_name, colour=0x801010)
                         msg = []
                         if stats['initial_stars'] == 0:
-                            msg.append(f'Unlocked {name} at {stats["latest_stars"]} stars')
+                            msg.append(f'Unlocked at {stats["latest_stars"]} stars')
                             if stats['latest_gear'] > 1:
-                                msg.append(f'Gear level: {stats["latest_gear"]}')
+                                msg.append(f'Gear: {stats["latest_gear"]}')
                             if stats['latest_relic'] > 1:
-                                msg.append(f'Relic level: {stats["latest_relic"]}')
-                            pmsg.append('\n'.join(msg))
+                                msg.append(f'Relic: {stats["latest_relic"]}')
                         else:
                             if stats['initial_stars'] != stats['latest_stars'] and (stats['latest_stars'] == 7 or BYPASS_MIN_PROGRESS):
                                 msg.append(f'Stars: {stats["initial_stars"]} -> {stats["latest_stars"]}')
@@ -223,18 +226,15 @@ class MyClient(disnake.Client):
                                 msg.append(f'Gear: {stats["initial_gear"]} -> {stats["latest_gear"]}')
                             if stats['initial_relic'] != stats['latest_relic']:
                                 msg.append(f'Relic: {stats["initial_relic"]} -> {stats["latest_relic"]}')
-                            if msg:
-                                msg = [name] + msg
-                                pmsg.append('\n'.join(msg))
 
-                    if pmsg:
-                        pmsg = '\n\n'.join(pmsg)
-                        player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
-                        update_msg = f'**{player_name}**\n{pmsg}'
-                        log(f'Attempting to send udate message {update_msg}')
-                        embed = disnake.Embed(description=pmsg, colour=0x801010)
-                        embed.set_author(name=player_name)
-                        await channel.send(embed=embed)
+                            if msg:
+                                have_update = True
+                                embed.add_field(name=name, value='\n'.join(msg), inline=False)
+                                embed.set_thumbnail(file=disnake.File(os.path.join(CFG.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
+                                log(f'Attempting to send udate message for {player_name}')
+                                await channel.send(embed=embed)
+
+                    deleted_keys.append(pID)
 
                 for k in deleted_keys:
                     del GLOBAL['player_updates'][k]
@@ -248,9 +248,10 @@ class MyClient(disnake.Client):
                     os.replace(TMP_GLOBAL_PATH, GLOBAL_PATH)
                 except:
                     log(f'Failed to update {GLOBAL_PATH}')
-                log('Begin sleeping for 30s')
-                await asyncio.sleep(30)
+                log(f'Begin sleeping for {SLEEP_S}s')
+                await asyncio.sleep(SLEEP_S)
         finally:
+            stackprinter.show()
             pass
             #await channel.send("Bot stopping")
 
@@ -259,5 +260,5 @@ class MyClient(disnake.Client):
         print(f'Message from {message.author}: {message.content}')
 
 client = MyClient()
-client.run(config.auth.discord_token)
+client.run(CFG.discord_token)
 
