@@ -24,7 +24,7 @@ guru_log.add("/tmp/deltabot.log", backtrace=True, diagnose=True)
 
 SLEEP_S = 30
 SEQ_DELAY = 3
-BYPASS_GEAR_LEVEL = False
+BYPASS_MIN_PROGRESS = False
 comlink = SwgohComlink(url='http://localhost:3200')
 player_data = comlink.get_player(917787877)
 player_data['name']
@@ -34,7 +34,7 @@ DELTABOT_PROD = 1063654416529494016
 BS_TEST = 1062980772736286740
 CCD_ACC_CHAN = 962889722848485427
 CCD_ACC_THRD = 1064598477662855220
-cur_chan = DELTABOT_PROD
+cur_chan = CCD_ACC_CHAN
 GLOBAL_PATH = '/home/server/source/DeltaBot/tmp/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
@@ -78,7 +78,7 @@ def update_unit_id_to_name():
 def get_guild_data(gID):
     for _ in range(3):
         guild = comlink.get_guild(gID)
-        if isinstance(guild, dict):
+        if isinstance(guild, dict) and 'member' in guild:
             return guild
 
     return {}
@@ -221,19 +221,19 @@ class MyClient(disnake.Client):
                             if stats['latest_relic'] > 1:
                                 msg.append(f'Relic: {stats["latest_relic"]}')
                         else:
-                            if stats['initial_stars'] != stats['latest_stars'] and stats['latest_stars'] == 7:
+                            if stats['initial_stars'] != stats['latest_stars'] and (stats['latest_stars'] == 7 or BYPASS_MIN_PROGRESS):
                                 msg.append(f'Stars: {stats["initial_stars"]} -> {stats["latest_stars"]}')
-                            if stats['initial_gear'] != stats['latest_gear'] and stats['latest_gear'] >= 12:
+                            if stats['initial_gear'] != stats['latest_gear'] and (stats['latest_gear'] >= 12 or BYPASS_MIN_PROGRESS):
                                 msg.append(f'Gear: {stats["initial_gear"]} -> {stats["latest_gear"]}')
                             if stats['initial_relic'] != stats['latest_relic']:
                                 msg.append(f'Relic: {stats["initial_relic"]} -> {stats["latest_relic"]}')
 
-                            if msg:
-                                have_update = True
-                                embed.add_field(name=name, value='\n'.join(msg), inline=False)
-                                embed.set_thumbnail(file=disnake.File(os.path.join(CFG.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
-                                log(f'Attempting to send udate message for {player_name}')
-                                await channel.send(embed=embed)
+                        if msg:
+                            have_update = True
+                            embed.add_field(name=name, value='\n'.join(msg), inline=False)
+                            embed.set_thumbnail(file=disnake.File(os.path.join(CFG.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
+                            log(f'Attempting to send udate message for {player_name}')
+                            await channel.send(embed=embed)
 
                     deleted_keys.append(pID)
 
