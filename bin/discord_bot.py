@@ -8,6 +8,7 @@ import stackprinter
 import json
 from swgoh_comlink import SwgohComlink
 import config.auth
+import requests
 
 import logging
 print(dir(CFG))
@@ -24,18 +25,16 @@ guru_log.add("/tmp/deltabot.log", backtrace=True, diagnose=True)
 
 SLEEP_S = 30
 SEQ_DELAY = 3
-BYPASS_MIN_PROGRESS = True
 comlink = SwgohComlink(url='http://localhost:3200')
 player_data = comlink.get_player(917787877)
 player_data['name']
 guild_id = player_data['guildId']
 DELTABOT_TEST = 1062981461227077694
-DELTABOT_PROD = 1063654416529494016
-BS_TEST = 1062980772736286740
+DELTABOT_THREAD = 1065466711702241390
 CCD_ACC_CHAN = 962889722848485427
 CCD_ACC_THRD = 1064598477662855220
-cur_chan = DELTABOT_PROD
 cur_chan = DELTABOT_TEST
+cur_thrd = DELTABOT_THREAD
 GLOBAL_PATH = '/home/server/source/TestDeltaBot/DeltaBot/tmp/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
@@ -79,7 +78,7 @@ def update_unit_id_to_name():
 def get_guild_data(gID):
     for _ in range(3):
         guild = comlink.get_guild(gID)
-        if isinstance(guild, dict):
+        if isinstance(guild, dict) and 'member' in guild:
             return guild
 
     return {}
@@ -128,6 +127,7 @@ class MyClient(disnake.Client):
         channel = self.get_channel(cur_chan)
         if not isinstance(channel, disnake.TextChannel):
             raise ValueError("Invalid channel")
+        thread = channel.get_thread(cur_thrd)
         #await channel.send("Bot starting")
 
         try:
@@ -211,30 +211,37 @@ class MyClient(disnake.Client):
                         continue
 
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
-                    have_update = False
                     for name, stats in update['toons'].items():
                         embed = disnake.Embed(title=player_name, colour=0x801010)
+                        hit_min = False
                         msg = []
                         if stats['initial_stars'] == 0:
+                            hit_min = True
                             msg.append(f'Unlocked at {stats["latest_stars"]} stars')
                             if stats['latest_gear'] > 1:
                                 msg.append(f'Gear: {stats["latest_gear"]}')
                             if stats['latest_relic'] > 1:
                                 msg.append(f'Relic: {stats["latest_relic"]}')
                         else:
-                            if stats['initial_stars'] != stats['latest_stars'] and (stats['latest_stars'] == 7 or BYPASS_MIN_PROGRESS):
+                            if stats['initial_stars'] != stats['latest_stars']:
                                 msg.append(f'Stars: {stats["initial_stars"]} -> {stats["latest_stars"]}')
-                            if stats['initial_gear'] != stats['latest_gear'] and (stats['latest_gear'] >= 12 or BYPASS_MIN_PROGRESS):
+
+                            if stats['initial_gear'] != stats['latest_gear']:
+                                hit_min |= stats['latest_gear'] >= 12
                                 msg.append(f'Gear: {stats["initial_gear"]} -> {stats["latest_gear"]}')
+
                             if stats['initial_relic'] != stats['latest_relic']:
+                                hit_min = True
                                 msg.append(f'Relic: {stats["initial_relic"]} -> {stats["latest_relic"]}')
 
-                            if msg:
-                                have_update = True
-                                embed.add_field(name=name, value='\n'.join(msg), inline=False)
-                                embed.set_thumbnail(file=disnake.File(os.path.join(CFG.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
-                                log(f'Attempting to send udate message for {player_name}')
+                        if msg:
+                            embed.add_field(name=name, value='\n'.join(msg), inline=False)
+                            embed.set_thumbnail(file=disnake.File(os.path.join(CFG.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
+                            log(f'Attempting to send udate message for {player_name}')
+                            if hit_min:
                                 await channel.send(embed=embed)
+                            else:
+                                await thread.send(embed=embed)
 
                     deleted_keys.append(pID)
 
@@ -252,6 +259,11 @@ class MyClient(disnake.Client):
                     log(f'Failed to update {GLOBAL_PATH}')
                 log(f'Begin sleeping for {SLEEP_S}s')
                 await asyncio.sleep(SLEEP_S)
+                try:
+                    requests.get("https://hc-ping.com/4e4b238d-e0f3-4082-9a5a-04a8ccecca89", timeout=10)
+                except requests.RequestException as e:
+                    log(f'Failed to ping watchdog: {e}')
+
         finally:
             stackprinter.show()
             pass
