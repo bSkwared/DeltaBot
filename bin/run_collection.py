@@ -1,21 +1,20 @@
 import warehouse.data as data
-import config.config as config
+import config.config as CFG
 import api_swgoh_help.client as ash_client
 import sys
 import ntplib
 import json
 import os
 import datetime
-import config.auth
 
 
 
 def main(args):
     is_prod = '--prod' in args
 
-    client = ash_client.APIClient(username=config.auth.username, password=config.auth.password)
+    client = ash_client.APIClient(username=CFG.username, password=CFG.password)
 
-    data.setup_warehouse(config.PROD_DB if is_prod else config.DEV_DB)
+    data.setup_warehouse(os.path.join(CFG.base_dir, CFG.PROD_DB if is_prod else CFG.DEV_DB))
     known_allycodes = data.get_allycodes()
     guilds = {}
     guild_found = set()
