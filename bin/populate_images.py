@@ -1,4 +1,4 @@
-import config.config as CFG
+import config
 import json
 import os
 import stackprinter
@@ -20,7 +20,7 @@ for unit in units['data']:
     try:
         #os.remove(os.path.join(CFG.base_dir, 'tmp', unit['name']))
         unit_path_name = ''.join(c if c.isalnum() else '_' for c in unit['name']) + '.' + unit['image'].split('.')[-1]
-        urllib.request.urlretrieve(unit['image'], os.path.join(CFG.base_dir, 'tmp', unit_path_name))
+        urllib.request.urlretrieve(unit['image'], os.path.join(config.base_dir, 'tmp', unit_path_name))
     except:
         stackprinter.show()
         raise

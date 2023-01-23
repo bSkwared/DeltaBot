@@ -2,47 +2,38 @@ import datetime
 from loguru import logger as guru_log
 import os
 import asyncio
-import config.config as CFG
+import config
 import disnake
 import stackprinter
 import json
 from swgoh_comlink import SwgohComlink
-import config.auth
 import requests
 
 import logging
-print(dir(CFG))
-print(CFG.base_dir)
 
 logger = logging.getLogger('disnake')
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='/tmp/disnake.log', encoding='utf-8', mode='w')
+handler = logging.FileHandler(filename=f'{config.base_dir}/tmp/disnake.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-guru_log.add("/tmp/deltabot.log", backtrace=True, diagnose=True)
+guru_log.add(f'{config.base_dir}/tmp/deltabot.log', backtrace=True, diagnose=True)
 
 
 SLEEP_S = 30
 SEQ_DELAY = 3
 comlink = SwgohComlink(url='http://localhost:3200')
-player_data = comlink.get_player(917787877)
+player_data = comlink.get_player(config.allycode)
 player_data['name']
 guild_id = player_data['guildId']
-DELTABOT_TEST = 1062981461227077694
-DELTABOT_THREAD = 1065466711702241390
-CCD_ACC_CHAN = 962889722848485427
-CCD_ACC_THRD = 1064598477662855220
-cur_chan = DELTABOT_TEST
-cur_thrd = DELTABOT_THREAD
-GLOBAL_PATH = '/home/server/source/TestDeltaBot/DeltaBot/tmp/delta.json'
+cur_chan = config.accomplishments_channel_id
+cur_thrd = config.accomplishments_thread_id
+GLOBAL_PATH = f'{config.base_dir}/tmp/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
 GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0}
 def log(msg):
     guru_log.info(f'{datetime.datetime.now()}: {msg}')
-
-log(os.environ.get('BETTER_EXCEPTIONS'))
 
 try:
     with open(GLOBAL_PATH, 'r') as fp:
@@ -128,7 +119,8 @@ class MyClient(disnake.Client):
         if not isinstance(channel, disnake.TextChannel):
             raise ValueError("Invalid channel")
         thread = channel.get_thread(cur_thrd)
-        #await channel.send("Bot starting")
+        await channel.send("Bot starting")
+        await thread.send("Bot starting")
 
         try:
             loop = asyncio.get_event_loop()
@@ -236,7 +228,7 @@ class MyClient(disnake.Client):
 
                         if msg:
                             embed.add_field(name=name, value='\n'.join(msg), inline=False)
-                            embed.set_thumbnail(file=disnake.File(os.path.join(CFG.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
+                            embed.set_thumbnail(file=disnake.File(os.path.join(config.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
                             log(f'Attempting to send udate message for {player_name}')
                             if hit_min:
                                 await channel.send(embed=embed)
@@ -260,7 +252,7 @@ class MyClient(disnake.Client):
                 log(f'Begin sleeping for {SLEEP_S}s')
                 await asyncio.sleep(SLEEP_S)
                 try:
-                    requests.get("https://hc-ping.com/4e4b238d-e0f3-4082-9a5a-04a8ccecca89", timeout=10)
+                    requests.get(config.healthcheck_url, timeout=10)
                 except requests.RequestException as e:
                     log(f'Failed to ping watchdog: {e}')
 
@@ -274,5 +266,5 @@ class MyClient(disnake.Client):
         print(f'Message from {message.author}: {message.content}')
 
 client = MyClient()
-client.run(CFG.discord_token)
+client.run(config.discord_token)
 

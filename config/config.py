@@ -7,6 +7,7 @@ assert cfg_auth.username
 assert cfg_auth.password
 assert cfg_auth.discord_token
 assert cfg_auth.base_dir
+assert cfg_auth.healthcheck_url
 
 PROD_DB = 'prod_swgoh.sqlite3'
 DEV_DB = 'dev.sqlite3'
@@ -14,3 +15,4 @@ username = cfg_auth.username
 password = cfg_auth.password
 discord_token = cfg_auth.discord_token
 base_dir = cfg_auth.base_dir
+healthcheck_url = cfg_auth.healthcheck_url
