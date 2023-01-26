@@ -251,10 +251,12 @@ class MyClient(disnake.Client):
                     log(f'Failed to update {GLOBAL_PATH}')
                 log(f'Begin sleeping for {SLEEP_S}s')
                 await asyncio.sleep(SLEEP_S)
-                try:
-                    requests.get(config.healthcheck_url, timeout=10)
-                except requests.RequestException as e:
-                    log(f'Failed to ping watchdog: {e}')
+                for _ in range(3):
+                    try:
+                        requests.get(config.healthcheck_url, timeout=10)
+                        break
+                    except requests.RequestException as e:
+                        log(f'Failed to ping watchdog: {e}')
 
         finally:
             stackprinter.show()
