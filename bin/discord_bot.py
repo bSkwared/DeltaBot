@@ -204,29 +204,50 @@ class MyClient(disnake.Client):
 
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
                     for name, stats in update['toons'].items():
-                        embed = disnake.Embed(title=player_name, colour=0x801010)
                         hit_min = False
                         msg = []
                         if stats['initial_stars'] == 0:
-                            hit_min = True
+                            hit_min = stats["latest_stars"] == 7
                             msg.append(f'Unlocked at {stats["latest_stars"]} stars')
-                            if stats['latest_gear'] > 1:
-                                msg.append(f'Gear: {stats["latest_gear"]}')
+                            hit_min |= stats['latest_gear'] >= 12
                             if stats['latest_relic'] > 1:
                                 msg.append(f'Relic: {stats["latest_relic"]}')
+                            elif stats['latest_gear'] > 1:
+                                msg.append(f'Gear: {stats["latest_gear"]}')
                         else:
+                            gear_init = stats['initial_gear']
+                            gear_final = stats['latest_gear']
+                            relic_init = stats['initial_relic']
+                            relic_final = stats['latest_relic']
+                            have_init_gear = False
+                            init_gear_relic = ''
+                            final_gear_relic = ''
+
                             if stats['initial_stars'] != stats['latest_stars']:
                                 msg.append(f'Stars: {stats["initial_stars"]} -> {stats["latest_stars"]}')
 
-                            if stats['initial_gear'] != stats['latest_gear']:
-                                hit_min |= stats['latest_gear'] >= 12
-                                msg.append(f'Gear: {stats["initial_gear"]} -> {stats["latest_gear"]}')
+                            if gear_init != gear_final:
+                                have_init_gear = True
+                                init_gear_relic = f'G{gear_init}'
+                                final_gear_relic = f'G{gear_final}'
+                                hit_min |= gear_init < 12 and gear_final >= 12
 
-                            if stats['initial_relic'] != stats['latest_relic']:
-                                hit_min = True
-                                msg.append(f'Relic: {stats["initial_relic"]} -> {stats["latest_relic"]}')
+                            if relic_init != relic_final:
+                                if not init_gear_relic:
+                                    if relic_init == 0:
+                                        init_gear_relic = f'G{gear_init}'
+                                    else:
+                                        init_gear_relic = f'R{relic_init}'
+                                final_gear_relic = f'R{relic_final}'
+
+                                hit_min != relic_final >= 7
+                                for r_level in (1, 3, 5):
+                                    hit_min |= relic_init < r_level and relic_final >= r_level
+                            if init_gear_relic and final_gear_relic:
+                                msg.append(f'{init_gear_relic} -> {final_gear_relic}')
 
                         if msg:
+                            embed = disnake.Embed(title=player_name, colour=0x801010)
                             embed.add_field(name=name, value='\n'.join(msg), inline=False)
                             embed.set_thumbnail(file=disnake.File(os.path.join(config.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
                             log(f'Attempting to send udate message for {player_name}')
