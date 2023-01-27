@@ -21,7 +21,7 @@ for unit in units['data']:
         unit_path_name = ''.join(c if c.isalnum() else '_' for c in unit['name']) + '.' + unit['image'].split('.')[-1]
         final_path = os.path.join(config.base_dir, 'tmp', unit_path_name)
         if not os.path.exists(final_path):
-            urllib.request.urlretrieve(unit['image'], file_path)
+            urllib.request.urlretrieve(unit['image'], final_path)
     except:
         stackprinter.show()
         raise
