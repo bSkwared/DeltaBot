@@ -18,9 +18,10 @@ urllib.request.install_opener(opener)
 # Iterate json list and write images to base_dir/tmp
 for unit in units['data']:
     try:
-        #os.remove(os.path.join(CFG.base_dir, 'tmp', unit['name']))
         unit_path_name = ''.join(c if c.isalnum() else '_' for c in unit['name']) + '.' + unit['image'].split('.')[-1]
-        urllib.request.urlretrieve(unit['image'], os.path.join(config.base_dir, 'tmp', unit_path_name))
+        final_path = os.path.join(config.base_dir, 'tmp', unit_path_name)
+        if not os.path.exists(final_path):
+            urllib.request.urlretrieve(unit['image'], file_path)
     except:
         stackprinter.show()
         raise
