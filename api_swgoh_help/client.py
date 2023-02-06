@@ -78,8 +78,8 @@ def convert_dict_to_player(player):
 
     return Player(player['allyCode'], player['name'], player['guildRefId'],
                   gp['ships'], gp['characters'], gac['league'], gac['division'],
-                  gac['rank'], player['arena']['ship']['rank'],
-                  player['arena']['char']['rank'], roster)
+                  gac['rank'], player['arena']['ship']['rank'] or 1000000,
+                  player['arena']['char']['rank'] or 1000000, roster)
 
 
 def parse_players_list(players_list):
