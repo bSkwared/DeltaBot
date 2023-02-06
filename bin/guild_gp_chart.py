@@ -1,5 +1,5 @@
 import argparse
-import config.config as config
+import config
 import datetime
 import plotly.express as px
 import warehouse.data as WD
