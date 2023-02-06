@@ -1,5 +1,4 @@
 import datetime
-from loguru import logger as guru_log
 import os
 import asyncio
 import config
@@ -8,16 +7,18 @@ import stackprinter
 import json
 from swgoh_comlink import SwgohComlink
 import requests
+import urllib.request
+import utils
 
 import logging
 
-logger = logging.getLogger('disnake')
-logger.setLevel(logging.DEBUG)
+disnake_logger = logging.getLogger('disnake')
+disnake_logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename=f'{config.base_dir}/tmp/disnake.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
+disnake_logger.addHandler(handler)
 
-guru_log.add(f'{config.base_dir}/tmp/deltabot.log', backtrace=True, diagnose=True)
+#guru_log.add(f'{config.base_dir}/tmp/deltabot.log', backtrace=True, diagnose=True)
 
 
 SLEEP_S = 30
@@ -33,7 +34,7 @@ TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
 GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0}
 def log(msg):
-    guru_log.info(f'{datetime.datetime.now()}: {msg}')
+    utils.logger.info(msg)
 
 try:
     with open(GLOBAL_PATH, 'r') as fp:
@@ -65,6 +66,13 @@ def update_unit_id_to_name():
     name_key_to_string = []
 
     GLOBAL['unit_id_to_name'] = id_to_name
+
+def name_to_image_name(name):
+    return ''.join(c if c.isalnum() else '_' for c in name)
+
+
+
+
 
 def get_guild_data(gID):
     for _ in range(3):
@@ -183,8 +191,6 @@ class MyClient(disnake.Client):
                                                                else 0),
                                                             unit.get('initial_relic', 999))
                             except Exception as e:
-                                guru_log.debug(e)
-                                guru_log.debug(lc)
                                 raise e
                             unit['latest_stars'] = c['currentRarity'] if c else 0
                             unit['latest_gear'] = c['currentTier'] if c else 0
@@ -281,6 +287,7 @@ class MyClient(disnake.Client):
 
         finally:
             stackprinter.show()
+            os._exit(1)
             pass
             #await channel.send("Bot stopping")
 
