@@ -20,6 +20,7 @@ disnake_logger.addHandler(handler)
 
 #guru_log.add(f'{config.base_dir}/tmp/deltabot.log', backtrace=True, diagnose=True)
 
+GL_REQS = {}
 
 SLEEP_S = 30
 SEQ_DELAY = 3
@@ -225,7 +226,6 @@ class MyClient(disnake.Client):
                             gear_final = stats['latest_gear']
                             relic_init = stats['initial_relic']
                             relic_final = stats['latest_relic']
-                            have_init_gear = False
                             init_gear_relic = ''
                             final_gear_relic = ''
 
@@ -233,10 +233,10 @@ class MyClient(disnake.Client):
                                 msg.append(f'Stars: {stats["initial_stars"]} -> {stats["latest_stars"]}')
 
                             if gear_init != gear_final:
-                                have_init_gear = True
                                 init_gear_relic = f'G{gear_init}'
                                 final_gear_relic = f'G{gear_final}'
-                                hit_min |= gear_init < 12 and gear_final >= 12
+                                if name in GL_REQS:
+                                    hit_min |= gear_init < 12 and gear_final >= 12
 
                             if relic_init != relic_final:
                                 if not init_gear_relic:
