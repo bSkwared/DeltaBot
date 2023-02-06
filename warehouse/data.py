@@ -217,7 +217,11 @@ def save_data(guilds, players, collection_time):
             get_or_create_guild(g, time)
 
         for p in players:
-            get_or_create_player(p, time)
+            try:
+                get_or_create_player(p, time)
+            except:
+                print(f'ERROR: Unable to create player {p.allycode}, {p.name}, {p.guild_id}, {p.ship_gp}, {p.character_gp}, {p.gac_league}, {p.gac_division}, {p.gac_rank}, {p.fleet_rank}, {p.squad_rank}')
+                pass
 
 def get_allycodes():
     ps = Player().select(PW.fn.DISTINCT(Player.allycode))
