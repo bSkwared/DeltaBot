@@ -240,7 +240,7 @@ class MyClient(disnake.Client):
                                         init_gear_relic = f'R{relic_init}'
                                 final_gear_relic = f'R{relic_final}'
 
-                                hit_min != relic_final >= 7
+                                hit_min |= relic_final >= 7
                                 for r_level in (1, 3, 5):
                                     hit_min |= relic_init < r_level and relic_final >= r_level
                             if init_gear_relic and final_gear_relic:
