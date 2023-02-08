@@ -3,3 +3,6 @@ auth.py
 venv/
 *.sw*
 tmp
+*.sqlite3
+*.log
+*.gz
