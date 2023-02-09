@@ -1,0 +1,21 @@
+# /etc/systemd/system/deltabot.service
+[Unit]
+Description=DeltaBot
+After=multi-user.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment=PYTHONPATH=/home/server/source/DeltaBot
+Environment=BETTER_EXCEPTIONS=1
+ExecStart=/home/server/source/DeltaBot/venv/bin/python /home/server/source/DeltaBot/bin/discord_bot.py
+User=server
+Group=server
+Type=idle
+Restart=always
+RestartSec=15
+RestartPreventExitStatus=0
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

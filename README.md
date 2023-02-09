@@ -160,4 +160,9 @@ $
 
 
 
+<<<<<<< HEAD
 >>>>>>> ae5e816 (Move python code into deltabot package)
+=======
+python3.11 -m pip install requirements.txt
+deltabot.service is a systemd unit that can be used for running deltabot. You will need to update it for your environment.
+>>>>>>> 4e0f8d6 (Restructure project files)
