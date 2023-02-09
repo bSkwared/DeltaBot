@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # api_swgoh_help
 <<<<<<< HEAD
 Python code for the API at https://api.swgoh.help/
@@ -154,3 +155,9 @@ $ ls -l dev.db
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
 $
 >>>>>>> f3baf64 (Pulled new data, reverted the file to be just logging player data)
+=======
+# DeltaBot
+
+
+
+>>>>>>> ae5e816 (Move python code into deltabot package)
