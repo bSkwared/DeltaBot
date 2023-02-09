@@ -54,7 +54,7 @@ class Toon(BaseModel):
     player = PW.ForeignKeyField(Player, backref='toons')
 
 tables_to_create.append(Toon)
-     
+
 
 class AbilityDefinition(BaseModel):
     ability_id = PW.CharField(unique=True)
@@ -84,11 +84,17 @@ class ToonStats(BaseModel):
 tables_to_create.append(ToonStats)
 
 
+class Stat(BaseModel):
+    stat_name = PW.CharField(unique=True)
+
+tables_to_create.append(Stat)
+
+
 class Mod(BaseModel):
-    id = PW.CharField(unique=True)
+    mod_id = PW.CharField(unique=True)
     shape = PW.IntegerField()
     mod_set = PW.IntegerField()
-    primary_stat = PW.CharField()
+    primary_stat = PW.ForeignKeyField(Stat)
 
 tables_to_create.append(Mod)
 
@@ -107,7 +113,7 @@ tables_to_create.append(ModStats)
 class SecondaryStat(BaseModel):
     time = PW.ForeignKeyField(CollectionTime)
     mod = PW.ForeignKeyField(Mod, backref='secondaries')
-    stat = PW.CharField()
+    stat = PW.ForeignKeyField(Stat)
     value = PW.CharField()
     num_rolls = PW.IntegerField()
 
@@ -126,7 +132,7 @@ db.create_tables(tables_to_create)
 #Player(allycode=917787877, name='RedFox').save()
 
 player_dump = {}
-with open('guild_player_stats_12_18_22.json', 'r') as fp:
+with open(sys.argv[1], 'r') as fp:
     player_dump = json.load(fp)
 
 
@@ -152,9 +158,34 @@ def convert_gac_division(division):
     return 6 - (division//5)
 
 guilds_seen = {}
+stat_names = {}
 toons_seen = {}
 AD_seen = {}
 start_creation = datetime.datetime.now()
+
+def get_stat_name_obj(stat_name):
+    if stat_name in stat_names:
+        return stat_names[stat_name]
+
+    try:
+        sn = Stat().get(Stat.stat_name == stat_name)
+    except Stat.DoesNotExist:
+        sn = Stat(stat_name=stat_name)
+        sn.save()
+    stat_names[stat_name] = sn
+
+    return sn
+
+
+def get_or_create_mod(mod_id, shape, mod_set, primary_stat):
+    try:
+        m = Mod().get(mod_id=mod_id)
+    except Mod.DoesNotExist:
+        m = Mod(mod_id=mod_id, shape=shape, mod_set=mod_set,
+                primary_stat=primary_stat)
+        m.save()
+    return m
+
 with db.atomic() as transactoin:
     for player in player_dump:
         #breakpoint()
@@ -240,7 +271,7 @@ with db.atomic() as transactoin:
                     gear_level = toon['gear']
                     relic_level = toon['relic']['currentTier'] if toon['relic'] else None
                     gear_slots_filled = len(toon['equipped'])
-                    ts = ToonStats().get(ToonStats.toon == t and 
+                    ts = ToonStats().get(ToonStats.toon == t and
                                          ToonStats.stars == stars and
                                          ToonStats.gear_level == gear_level and
                                          ToonStats.relic_level == relic_level and
@@ -250,8 +281,93 @@ with db.atomic() as transactoin:
                                    gear_level=gear_level, relic_level=relic_level,
                                    gear_slots_filled=gear_slots_filled)
                     ts.save()
+
+            for mod in toon['mods']:
+                mod_id = mod['id']
+                shape = mod['slot']
+                mod_set = mod['set']
+                primary_stat = get_stat_name_obj(mod['primaryStat']['unitStat'])
+                m = get_or_create_mod(mod_id, shape, mod_set, primary_stat)
+
+                try:
+                    level = mod['level']
+                    color = mod['tier']
+                    dots = mod['pips']
+                    primary_value = str(mod['primaryStat']['value'])
+                    ms = ModStats().get(ModStats.mod == m and
+                                        ModStats.dots == dots and
+                                        ModStats.color == color and
+                                        ModStats.level == level and
+                                        ModStats.primary_value == primary_value)
+
+                except ModStats.DoesNotExist:
+                    ms = ModStats(time=time, mod=m, dots=dots, color=color,
+                                  level=level, primary_value=primary_value)
+                    ms.save()
+
+                for secondary in mod['secondaryStat']:
+                    value = secondary['value']
+                    rolls = secondary['roll']
+                    stat = get_stat_name_obj(secondary['unitStat'])
+                    try:
+                        SecondaryStat().get(SecondaryStat.mod == m and
+                                            SecondaryStat.stat == stat and
+                                            SecondaryStat.value == value and
+                                            SecondaryStat.num_rolls == rolls)
+                    except SecondaryStat.DoesNotExist:
+                        SecondaryStat(time=time, mod=m, stat=stat, value=value,
+                                      num_rolls=rolls).save()
+
+
+
+
+                '''
+                try:
+                    stars = toon['rarity']
+                    gear_level = toon['gear']
+                    relic_level = toon['relic']['currentTier'] if toon['relic'] else None
+                    gear_slots_filled = len(toon['equipped'])
+                    ts = ToonStats().get(ToonStats.toon == t and
+                                         ToonStats.stars == stars and
+                                         ToonStats.gear_level == gear_level and
+                                         ToonStats.relic_level == relic_level and
+                                         ToonStats.gear_slots_filled == gear_slots_filled)
+                except ToonStats.DoesNotExist:
+                    ts = ToonStats(time=time, toon=t, stars=stars,
+                                   gear_level=gear_level, relic_level=relic_level,
+                                   gear_slots_filled=gear_slots_filled)
+                    ts.save()
+                '''
                 #al = AbilityLevel(time=time, toon=t, tier=ability['tier'], ability_definition=ad)
                 #al.save()
+'''
+class Mod(BaseModel):
+    mod_id = PW.CharField(unique=True)
+    shape = PW.IntegerField()
+    mod_set = PW.IntegerField()
+    primary_stat = PW.CharField()
+
+class ModStats(BaseModel):
+    time = PW.ForeignKeyField(CollectionTime)
+    mod = PW.ForeignKeyField(Mod, backref='stats')
+    dots = PW.IntegerField()
+    color = PW.CharField()
+    level = PW.IntegerField()
+    primary_value = PW.CharField()
+
+class SecondaryStat(BaseModel):
+    time = PW.ForeignKeyField(CollectionTime)
+    mod = PW.ForeignKeyField(Mod, backref='secondaries')
+    stat = PW.CharField()
+    value = PW.CharField()
+    num_rolls = PW.IntegerField()
+
+class ModAssignment(BaseModel):
+    time = PW.ForeignKeyField(CollectionTime)
+    toon = PW.ForeignKeyField(Toon, backref='mods')
+    mod = PW.ForeignKeyField(Mod, backref='toon')
+'''
+
 
 end_time = datetime.datetime.now()
 print(f'Finished all players in {end_time - start_creation}')
@@ -271,4 +387,4 @@ print(f'Averaged {(end_time - start_creation)/len(player_dump)} per player')
 
 
 
-    
+
