@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # api_swgoh_help
 <<<<<<< HEAD
 Python code for the API at https://api.swgoh.help/
@@ -119,6 +120,9 @@ allycode and then submitted to the API.
 =======
 The [swgoh-sample.py](examples/swgoh-example.py) file is a collection of example code to illustrate
 usage of various API endpoints. It is not intended to be run as is.
+=======
+# Delta Bot
+>>>>>>> 11cad47 (Delete Postman directory and move all files to a tmp folder to cleanup later)
 
 
 blasky at blasky--MacBookPro18 in ~/swgoh/api_swgoh_help (master●●)
