@@ -1,4 +1,4 @@
-auth.py
+local.py
 *.pyc
 venv/
 *.sw*
@@ -6,3 +6,4 @@ tmp
 *.sqlite3
 *.log
 *.gz
+resources
