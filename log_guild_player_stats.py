@@ -1,4 +1,5 @@
 from api_swgoh_help import api_swgoh_help
+import sys
 import json
 from datetime import datetime, timezone
 import ntplib
@@ -17,13 +18,12 @@ def getGuild(api_client, allycode):
     payload = {'allycodes': [allycode], 'language': "eng_us", 'enums': True}
     result = api_client.fetchGuilds(payload)
     return result
-print(getGuild(client, allycode))
-import sys
-sys.exit(0)
+#sys.exit(0)
 
 
 def getGuildAllycodes(guild_dict):
     allycodes = []
+    assert isinstance(guild_dict, list), f'Expected list, got {type(guild_dict)}: {guild_dict}'
     g_members = guild_dict[0]['roster']
     for g_member in g_members:
         try:
@@ -35,6 +35,15 @@ def getGuildAllycodes(guild_dict):
             # pprint.pprint(guild_dict)
             return ([])
     return allycodes
+
+# Fetch a list of guild member allycodes
+members = getGuild(client, allycode)
+g_allycodes = getGuildAllycodes(members)
+#print(g_allycodes)
+
+print(json.dumps(client.fetchPlayers(g_allycodes), indent=2))
+sys.exit(0)
+
 
 players = {}
 
@@ -48,9 +57,3 @@ log_obj['players'] = players
 print(json.dumps(log_obj, indent=2))
 
 
-# Fetch a list of guild member allycodes
-members = getGuild(client, allycode)
-g_allycodes = getGuildAllycodes(members)
-print(g_allycodes)
-
-#print(json.dumps(client.fetchPlayers(g_allycodes), indent=2))
