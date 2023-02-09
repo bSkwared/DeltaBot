@@ -1,0 +1,11 @@
+# This file is used for variables that need to change depending on
+# the instance running the bot and other code in this project. 
+# Whenever this repo is cloned, this file will need to be copied
+# to local.py in the same directory with all these variables set.
+
+allycode = 123456789 
+discord_token = 'DISCORD_BOT_TOKEN'
+base_dir = '/EXAMPLE_PATH_TO_DIRECTORY_REPO_CLONED_TO'
+healthcheck_url = 'http://example.com'
+accomplishments_channel_id = 1234
+accomplishments_thread_id = 1234
