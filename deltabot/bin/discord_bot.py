@@ -14,11 +14,9 @@ import logging
 
 disnake_logger = logging.getLogger('disnake')
 disnake_logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename=f'{config.base_dir}/tmp/disnake.log', encoding='utf-8', mode='w')
+handler = logging.FileHandler(filename=f'{config.TXMP_DIR/disnake.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 disnake_logger.addHandler(handler)
-
-#guru_log.add(f'{config.base_dir}/tmp/deltabot.log', backtrace=True, diagnose=True)
 
 GL_REQS = {}
 
@@ -30,7 +28,7 @@ player_data['name']
 guild_id = player_data['guildId']
 cur_chan = config.accomplishments_channel_id
 cur_thrd = config.accomplishments_thread_id
-GLOBAL_PATH = f'{config.base_dir}/tmp/delta.json'
+GLOBAL_PATH = f'{config.TMP_DIR}/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
 GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0}
@@ -255,7 +253,7 @@ class MyClient(disnake.Client):
                         if msg:
                             embed = disnake.Embed(title=player_name, colour=0x801010)
                             embed.add_field(name=name, value='\n'.join(msg), inline=False)
-                            embed.set_thumbnail(file=disnake.File(os.path.join(config.base_dir, 'tmp', ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
+                            embed.set_thumbnail(file=disnake.File(os.path.join(config.TMP_DIR, ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
                             log(f'Attempting to send udate message for {player_name}')
                             if hit_min:
                                 await channel.send(embed=embed)

@@ -14,7 +14,7 @@ def main(args):
 
     client = ash_client.APIClient(username=CFG.username, password=CFG.password)
 
-    data.setup_warehouse(os.path.join(CFG.base_dir, CFG.PROD_DB if is_prod else CFG.DEV_DB))
+    data.setup_warehouse(CFG.STATS_DB)
     known_allycodes = data.get_allycodes()
     guilds = {}
     guild_found = set()

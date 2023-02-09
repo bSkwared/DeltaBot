@@ -7,7 +7,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename=os.path.join(config.base_dir, 'tmp', 'bot.log'))
+handler = logging.FileHandler(filename=os.path.join(config.TMP_DIR, 'bot.log'))
 handler.setFormatter(logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s: %(message)s',
                                        '%Y-%m-%d %H:%M:%S'))
 logger.addHandler(handler)
@@ -72,7 +72,7 @@ def update_unit_images():
 
         img_type = unit['image'].split('.')[-1]
         unit_path_name = f'{sasnitize_unit_name(unit["name"])}.{img_type}'
-        final_path = os.path.join(config.base_dir, 'tmp', unit_path_name)
+        final_path = os.path.join(config.TMP_DIR, unit_path_name)
         if os.path.exists(final_path):
             continue
         logger.info(f'Updating image for {unit["name"]} to {final_path}')

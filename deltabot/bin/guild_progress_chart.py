@@ -18,7 +18,7 @@ start = end - datetime.timedelta(days=args.duration)
 print(args)
 print(end)
 print(start)
-WD.setup_warehouse(config.DEV_DB)
+WD.setup_warehouse(config.STATS_DB)
 #print([p.name for p in WD.get_latest_guild_members('G746160409')])
 #import sys
 #sys.exit(0)

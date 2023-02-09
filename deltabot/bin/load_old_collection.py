@@ -44,7 +44,7 @@ def main(args):
         players.extend(ash_client.parse_players_list(contents))
 
 
-    data.setup_warehouse(config.PROD_DB if is_prod else config.DEV_DB)
+    data.setup_warehouse(config.STATS_DB)
     data.save_data([], players, datetime.datetime.fromtimestamp(timestamp))
 
 
