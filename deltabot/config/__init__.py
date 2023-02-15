@@ -19,7 +19,7 @@ resource_dir_name = 'resources'
 tmp_dir_name = 'tmp'
 stats_db_name = 'stats.sqlite3'
 
-__current_dir = os.path.realpath(__file__)[0]
+__current_dir = os.path.split(os.path.realpath(__file__))[0]
 base_dir = os.path.split(__current_dir)[0]
 
 
@@ -52,3 +52,5 @@ for k, v in local.__dict__.items():
 TMP_DIR = os.path.join(base_dir, tmp_dir_name)
 RESOURCE_DIR = os.path.join(base_dir, resource_dir_name)
 STATS_DB = os.path.join(TMP_DIR, stats_db_name)
+os.makedirs(TMP_DIR, exist_ok=True)
+os.makedirs(RESOURCE_DIR, exist_ok=True)

@@ -14,7 +14,10 @@ import logging
 
 disnake_logger = logging.getLogger('disnake')
 disnake_logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename=f'{config.TXMP_DIR/disnake.log', encoding='utf-8', mode='w')
+handler = logging.FileHandler(filename=os.path.join(config.TMP_DIR,
+                                                    'disnake.log'),
+                              encoding='utf-8',
+                              mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 disnake_logger.addHandler(handler)
 
@@ -65,9 +68,6 @@ def update_unit_id_to_name():
     name_key_to_string = []
 
     GLOBAL['unit_id_to_name'] = id_to_name
-
-def name_to_image_name(name):
-    return ''.join(c if c.isalnum() else '_' for c in name)
 
 
 
@@ -128,6 +128,7 @@ class MyClient(disnake.Client):
         thread = channel.get_thread(cur_thrd)
         await channel.send("Bot starting")
         await thread.send("Bot starting")
+        return
 
         try:
             loop = asyncio.get_event_loop()
@@ -291,7 +292,7 @@ class MyClient(disnake.Client):
 
 
     async def on_message(self, message):
-        print(f'Message from {message.author}: {message.content}')
+        log(f'Message from {message.author}: {message.content}')
 
 client = MyClient()
 client.run(config.discord_token)
