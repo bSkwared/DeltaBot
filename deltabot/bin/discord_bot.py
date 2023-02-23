@@ -128,7 +128,6 @@ class MyClient(disnake.Client):
         thread = channel.get_thread(cur_thrd)
         await channel.send("Bot starting")
         await thread.send("Bot starting")
-        return
 
         try:
             loop = asyncio.get_event_loop()
@@ -254,7 +253,11 @@ class MyClient(disnake.Client):
                         if msg:
                             embed = disnake.Embed(title=player_name, colour=0x801010)
                             embed.add_field(name=name, value='\n'.join(msg), inline=False)
-                            embed.set_thumbnail(file=disnake.File(os.path.join(config.TMP_DIR, ''.join(c if c.isalnum() else '_' for c in name) + '.png')))
+                            unit_img_path = utils.get_unit_img_path(name)
+                            if not os.path.exists(unit_img_path):
+                                utils.update_unit_images(name)
+                            if os.path.exists(unit_img_path):
+                                embed.set_thumbnail(file=disnake.File(unit_img_path))
                             log(f'Attempting to send udate message for {player_name}')
                             if hit_min:
                                 await channel.send(embed=embed)

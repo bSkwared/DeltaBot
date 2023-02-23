@@ -43,12 +43,12 @@ def get_retry(get_fn, url, retries=3):
     return None
 
 
-def get_raw_retry(url, retries=3)
-    return get_retry(get_url_raw, url, retries):
+def get_raw_retry(url, retries=3):
+    return get_retry(get_url_raw, url, retries)
 
 
 def get_json_retry(url, retries=3):
-    return get_retry(get_url_json, url, retries):
+    return get_retry(get_url_json, url, retries)
 
 
 def safe_write(filename, content):
@@ -73,7 +73,7 @@ def sanitize_unit_name(name):
 
 
 def get_unit_img_path(name):
-    return os.path.join(config.TMP_DIR, f'{sanitize_unit_name(name)}.png')
+    return os.path.join(config.RESOURCE_DIR, f'{sanitize_unit_name(name)}.png')
 
 
 # NOTE: if name is provided, the file image file will be 
