@@ -9,6 +9,7 @@ from swgoh_comlink import SwgohComlink
 import requests
 import urllib.request
 import utils
+import bin.Image_generator as gen
 
 import logging
 
@@ -204,8 +205,8 @@ class MyClient(disnake.Client):
 
                 deleted_keys = []
                 for pID, update in GLOBAL['player_updates'].items():
-                    if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
-                        continue
+                    # if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
+                    #     continue
 
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
                     for name, stats in update['toons'].items():
@@ -256,8 +257,9 @@ class MyClient(disnake.Client):
                             unit_img_path = utils.get_unit_img_path(name)
                             if not os.path.exists(unit_img_path):
                                 utils.update_unit_images(name)
-                            if os.path.exists(unit_img_path):
-                                embed.set_thumbnail(file=disnake.File(unit_img_path))
+                            gen_path = gen.main(unit_img_path=unit_img_path, relic_final=final_gear_relic)
+                            if os.path.exists(gen_path):
+                                embed.set_thumbnail(file=disnake.File(gen_path))
                             log(f'Attempting to send udate message for {player_name}')
                             if hit_min:
                                 await channel.send(embed=embed)
@@ -279,7 +281,7 @@ class MyClient(disnake.Client):
                 except:
                     log(f'Failed to update {GLOBAL_PATH}')
                 log(f'Begin sleeping for {SLEEP_S}s')
-                await asyncio.sleep(SLEEP_S)
+                # await asyncio.sleep(SLEEP_S)
                 for _ in range(3):
                     try:
                         requests.get(config.healthcheck_url, timeout=10)
