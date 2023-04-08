@@ -8,7 +8,7 @@ def main(unit_img_path, relic_final):
     relic_height = 160
     gear_width = 160
     gear_height = 130
-    if relic_final[0] == 'R' | relic_final == 'G13':
+    if relic_final[0] == 'R' or relic_final == 'G13':
         new_image = Image.new('RGBA', (relic_width, relic_height), (0, 0, 0, 0))
         addRelicCharImage(relic_width=relic_width, new_image=new_image, unit_img_path=unit_img_path)
         addRelicImage(relic_width=relic_width, new_image=new_image, relic_final=relic_final)
@@ -59,7 +59,7 @@ def addRelicBadge(relic_width, new_image, relic_final):
     new_image.alpha_composite(relic_badge_img, dest=(relic_badge_offset))
     font = ImageFont.truetype(f"{config.base_dir}/source/Titillium-Regular.otf", 20)
     draw2 = ImageDraw.Draw(new_image)
-    draw2.text(((new_image.width - 12) // 2, new_image.width - 37), str(relic_final), font=font, align="center", stroke_fill="black", stroke_width=3)
+    draw2.text(((new_image.width - 12) // 2, new_image.width - 37), relic_final, font=font, align="center", stroke_fill="black", stroke_width=3)
     
 def addZeta(relic_width, new_image):
     zeta_img = Image.open(f"{config.base_dir}/source/tex.skill_zeta_glow.png").convert('RGBA')
