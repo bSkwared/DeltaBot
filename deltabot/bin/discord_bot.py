@@ -34,7 +34,7 @@ cur_thrd = config.accomplishments_thread_id
 GLOBAL_PATH = f'{config.TMP_DIR}/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
-GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0}
+GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0, 'unit_id_to_alignment': {}}
 def log(msg):
     utils.logger.info(msg)
 
@@ -60,14 +60,17 @@ def update_unit_id_to_name():
     
 
     id_to_name = {}
+    id_to_alignment = {}
     units = comlink.get_game_data(include_pve_units=False)['units']
     for unit in units:
         unit_id, _ = unit['id'].split(':')
         id_to_name[unit_id] = name_key_to_string[unit['nameKey']]
+        id_to_alignment[unit_id] = unit['forceAlignment']
         
     name_key_to_string = []
 
     GLOBAL['unit_id_to_name'] = id_to_name
+    GLOBAL['unit_id_to_alignment'] = id_to_alignment
 
 
 
@@ -126,7 +129,6 @@ class MyClient(disnake.Client):
         if not isinstance(channel, disnake.TextChannel):
             raise ValueError("Invalid channel")
         thread = channel.get_thread(cur_thrd)
-        await channel.send("Bot starting")
         await thread.send("Bot starting")
 
         try:
@@ -164,11 +166,12 @@ class MyClient(disnake.Client):
                     for c in np['rosterUnit']:
                         lc = lp_roster.get(c['id'])
                         d_split = c["definitionId"].split(":")[0]
-                        if d_split not in GLOBAL['unit_id_to_name'] and last_updated_names + 100 < GLOBAL['cur_seq']:
+                        if (d_split not in GLOBAL['unit_id_to_name'] or d_split not in GLOBAL['unit_id_to_alignment']) and last_updated_names + 100 < GLOBAL['cur_seq']:
                             log(f'Updating names since {d_split} not found in mapping')
                             last_updated_names = GLOBAL['cur_seq']
                             await loop.run_in_executor(None, update_unit_id_to_name)
                         unit_name = GLOBAL['unit_id_to_name'].get(d_split, d_split)
+                        unit_alignment = GLOBAL['unit_id_to_alignment'].get(d_split, 1)
 
                         if (not lc 
                             or c['currentRarity'] != lc['currentRarity']
@@ -196,6 +199,7 @@ class MyClient(disnake.Client):
                             unit['latest_relic'] = max(0, c['relic']['currentTier'] - 2
                                                            if (c and c.get('relic'))
                                                            else 0)
+                            unit['alignment'] = unit_alignment
                             toons[unit_name] = unit
                             update['toons'] = toons
                             GLOBAL['player_updates'][npID] = update
