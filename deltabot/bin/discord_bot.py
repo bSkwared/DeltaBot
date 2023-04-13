@@ -132,7 +132,6 @@ class MyClient(disnake.Client):
         if not isinstance(channel, disnake.TextChannel):
             raise ValueError("Invalid channel")
         thread = channel.get_thread(cur_thrd)
-        await channel.send("Bot starting")
         await thread.send("Bot starting")
 
         try:
