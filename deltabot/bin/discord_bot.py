@@ -122,9 +122,15 @@ def update_players():
     #GLOBAL['players'] = {p['playerId']: comlink.get_player(player_id=p['playerId']) for p in GLOBAL['guild']['member']}
     GLOBAL['players'] = players
 
+already_started = False
 
 class MyClient(disnake.Client):
     async def on_ready(self):
+        global already_started
+        if already_started:
+            return
+        else:
+            already_started = True
         log(f'Logged on as {self.user}!')
         channel = self.get_channel(cur_chan)
         if not isinstance(channel, disnake.TextChannel):
