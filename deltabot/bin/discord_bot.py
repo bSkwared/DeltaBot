@@ -222,7 +222,7 @@ class MyClient(disnake.Client):
                     for name, stats in update['toons'].items():
                         hit_min = False
                         msg = []
-                        if stats['initial_stars'] == 0:
+                        if stats['initial_stars'] == -1:
                             hit_min = stats["latest_stars"] == 7
                             msg.append(f'Unlocked at {stats["latest_stars"]} stars')
                             hit_min |= stats['latest_gear'] >= 12
@@ -267,9 +267,12 @@ class MyClient(disnake.Client):
                             unit_img_path = utils.get_unit_img_path(name)
                             if not os.path.exists(unit_img_path):
                                 utils.update_unit_images(name)
-                            gen_path = gen.main(unit_img_path=unit_img_path, relic_final=final_gear_relic)
-                            if os.path.exists(gen_path):
-                                embed.set_thumbnail(file=disnake.File(gen_path))
+                            if final_gear_relic != '':
+                                gen_path = gen.main(unit_img_path=unit_img_path, relic_final=final_gear_relic, relic_init=init_gear_relic, alignment=stats['alignment'])
+                                if os.path.exists(gen_path):
+                                    embed.set_image(file=disnake.File(gen_path))
+                            elif os.path.exists(unit_img_path):
+                                embed.set_thumbnail(file=disnake.File(unit_img_path)) 
                             log(f'Attempting to send udate message for {player_name}')
                             if hit_min:
                                 await channel.send(embed=embed)
@@ -291,7 +294,8 @@ class MyClient(disnake.Client):
                 except:
                     log(f'Failed to update {GLOBAL_PATH}')
                 log(f'Begin sleeping for {SLEEP_S}s')
-                # await asyncio.sleep(SLEEP_S)
+                await asyncio.sleep(SLEEP_S)
+                # await asyncio.sleep(1000)
                 for _ in range(3):
                     try:
                         requests.get(config.healthcheck_url, timeout=10)
