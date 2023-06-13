@@ -10,7 +10,7 @@ def log(msg):
     utils.logger.info(msg)
 
 def main(unit_img_path, relic_final, relic_init, alignment):
-    arrow_img = Image.open(f"{path}/source/kisspng-arrow.png").convert('RGBA')
+    arrow_img = Image.open(f"{path}/source/bland-arrow.png").convert('RGBA')
     arrow_img = arrow_img.resize(size=(160, 160))
     new_image = Image.new('RGBA', (160 * 3, 160), (0, 0, 0, 0))
     init_img = genImg(unit_img_path, relic_init, alignment)
