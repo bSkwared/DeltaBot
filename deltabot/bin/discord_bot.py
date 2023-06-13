@@ -215,8 +215,8 @@ class MyClient(disnake.Client):
 
                 deleted_keys = []
                 for pID, update in GLOBAL['player_updates'].items():
-                    # if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
-                    #     continue
+                    if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
+                        continue
 
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
                     for name, stats in update['toons'].items():
