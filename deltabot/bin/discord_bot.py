@@ -131,7 +131,7 @@ class MyClient(disnake.Client):
             return
         else:
             already_started = True
-        log(f'Logged on as {self.user}!')
+        # log(f'Logged on as {self.user}!')
         channel = self.get_channel(cur_chan)
         if not isinstance(channel, disnake.TextChannel):
             raise ValueError("Invalid channel")
@@ -156,7 +156,7 @@ class MyClient(disnake.Client):
             # }
             while True:
                 GLOBAL['cur_seq'] += 1
-                log('Poll for new update to guild and players')
+                # log('Poll for new update to guild and players')
                 await loop.run_in_executor(None, update_guild)
                 await loop.run_in_executor(None, update_players)
                 #guild = comlink.get_guild(guild_id)
@@ -221,63 +221,56 @@ class MyClient(disnake.Client):
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
                     for name, stats in update['toons'].items():
                         hit_min = False
-                        msg = []
-                        if stats['initial_stars'] == -1:
-                            hit_min = stats["latest_stars"] == 7
-                            msg.append(f'Unlocked at {stats["latest_stars"]} stars')
-                            hit_min |= stats['latest_gear'] >= 12
-                            if stats['latest_relic'] > 1:
-                                msg.append(f'Relic: {stats["latest_relic"]}')
-                            elif stats['latest_gear'] > 1:
-                                msg.append(f'Gear: {stats["latest_gear"]}')
-                        else:
-                            gear_init = stats['initial_gear']
-                            gear_final = stats['latest_gear']
-                            relic_init = stats['initial_relic']
-                            relic_final = stats['latest_relic']
+                        
+                        gear_init = stats['initial_gear']
+                        gear_final = stats['latest_gear']
+                        relic_init = stats['initial_relic']
+                        relic_final = stats['latest_relic']
+                        stars_init = stats['initial_stars']
+                        stars_final = stats["latest_stars"]
+                        init_gear_relic = ''
+                        final_gear_relic = ''
+
+                        if gear_final == 1 and gear_init == 0:
+                            gear_final = 0
+                            gear_init = 0
+
+                        init_gear_relic = f'G{gear_init}'
+                        final_gear_relic = f'G{gear_final}'
+                        if name in GL_REQS:
+                            hit_min |= gear_init < 12 and gear_final >= 12
+
+                        if (init_gear_relic == 'G1' and final_gear_relic == 'G1') or (init_gear_relic == 'G0' and final_gear_relic == 'G1'):
                             init_gear_relic = ''
                             final_gear_relic = ''
+                           
+                        if relic_init > 0:
+                            init_gear_relic = f'R{relic_init}'
 
-                            if stats['initial_stars'] != stats['latest_stars']:
-                                msg.append(f'Stars: {stats["initial_stars"]} -> {stats["latest_stars"]}')
+                        if relic_final > 0:
+                            final_gear_relic = f'R{relic_final}'
 
-                            if gear_init != gear_final:
-                                init_gear_relic = f'G{gear_init}'
-                                final_gear_relic = f'G{gear_final}'
-                                if name in GL_REQS:
-                                    hit_min |= gear_init < 12 and gear_final >= 12
+                        hit_min |= relic_final >= 7
+                        for r_level in (1, 3, 5):
+                            hit_min |= relic_init < r_level and relic_final >= r_level
 
-                            if relic_init != relic_final:
-                                if not init_gear_relic:
-                                    if relic_init == 0:
-                                        init_gear_relic = f'G{gear_init}'
-                                    else:
-                                        init_gear_relic = f'R{relic_init}'
-                                final_gear_relic = f'R{relic_final}'
+                        embed = disnake.Embed(title=player_name, colour=0x801010)
+                        embed.add_field(name=name, value='', inline=False)
+                        unit_img_path = utils.get_unit_img_path(name)
 
-                                hit_min |= relic_final >= 7
-                                for r_level in (1, 3, 5):
-                                    hit_min |= relic_init < r_level and relic_final >= r_level
-                            if init_gear_relic and final_gear_relic:
-                                msg.append(f'{init_gear_relic} -> {final_gear_relic}')
+                        if not os.path.exists(unit_img_path):
+                            utils.update_unit_images(name)
 
-                        if msg:
-                            embed = disnake.Embed(title=player_name, colour=0x801010)
-                            embed.add_field(name=name, value='\n'.join(msg), inline=False)
-                            unit_img_path = utils.get_unit_img_path(name)
-                            if not os.path.exists(unit_img_path):
-                                utils.update_unit_images(name)
-                            if final_gear_relic != '':
-                                gen_path = gen.main(unit_img_path=unit_img_path, relic_final=final_gear_relic, relic_init=init_gear_relic, alignment=stats['alignment'])
-                                if os.path.exists(gen_path):
-                                    embed.set_image(file=disnake.File(gen_path))
-                            elif os.path.exists(unit_img_path):
-                                embed.set_thumbnail(file=disnake.File(unit_img_path)) 
-                            log(f'Attempting to send udate message for {player_name}')
-                            if hit_min:
-                                await channel.send(embed=embed)
-                            else:
-                                await thread.send(embed=embed)
+                        gen_path = gen.main(unit_img_path=unit_img_path, relic_final=final_gear_relic, relic_init=init_gear_relic, alignment=stats['alignment'], stars_init=stars_init, stars_final=stars_final)
+                        if os.path.exists(gen_path):
+                            embed.set_image(file=disnake.File(gen_path))
+                        # elif os.path.exists(unit_img_path):
+                        # embed.set_thumbnail(file=disnake.File(unit_img_path)) 
+                        log(f'Attempting to send udate message for {player_name}')
+                        if hit_min:
+                            await channel.send(embed=embed)
+                        else:
+                            await thread.send(embed=embed)
 
                     deleted_keys.append(pID)
 

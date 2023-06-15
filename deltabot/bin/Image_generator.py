@@ -9,40 +9,52 @@ path = config.base_dir
 def log(msg):
     utils.logger.info(msg)
 
-def main(unit_img_path, relic_final, relic_init, alignment):
-    arrow_img = Image.open(f"{path}/source/kisspng-arrow.png").convert('RGBA')
-    arrow_img = arrow_img.resize(size=(160, 160))
-    new_image = Image.new('RGBA', (160 * 3, 160), (0, 0, 0, 0))
-    init_img = genImg(unit_img_path, relic_init, alignment)
-    final_img = genImg(unit_img_path, relic_final, alignment)
+def main(unit_img_path, relic_final, relic_init, alignment, stars_init, stars_final):
+    img_height = 160
+    img_width = 160
+    gear_height = 130
+    star_active = Image.open(f"{path}/source/star-active.png").convert('RGBA')
+    arrow_img = Image.open(f"{path}/source/bland-arrow.png").convert('RGBA')
+    arrow_img = arrow_img.resize(size=(185, 180))
+    new_image = Image.new('RGBA', (160 * 3, 160+ int(star_active.height//1.5)), (0, 0, 0, 0))
+    init_img = genImg(unit_img_path, relic_init, alignment, stars_init, img_height, img_width)
+    final_img = genImg(unit_img_path, relic_final, alignment, stars_final, img_height, img_width)
+    addStars(relic_height=160, new_image=new_image, stars=stars_init, offset=0)
+    addStars(relic_height=160, new_image=new_image, stars=stars_final, offset=160*2)
     new_image.alpha_composite(init_img, dest=(0, 0))
-    new_image.alpha_composite(arrow_img, dest=(160, 0))
+    new_image.alpha_composite(arrow_img, dest=(150, -10))
     new_image.alpha_composite(final_img, dest=(160*2, 0))
     new_image.save(f"{path}/tmp/unit_change.png")
     return f"{path}/tmp/unit_change.png"
 
-def genImg(unit_img_path, relic_final, alignment):
-    relic_width = 160
-    relic_height = 160
-    gear_width = 160
+def genImg(unit_img_path, relic_final, alignment, stars, img_height, img_width):
     gear_height = 130
     alignment = {1:2, 2:0, 3:1}[alignment]
-    if relic_final[0] == 'R' or relic_final == 'G13':
-        new_image = Image.new('RGBA', (relic_width, relic_height), (0, 0, 0, 0))
-        relic_final = int(relic_final[1:]) if relic_final != 'G13' else 0
-        addRelicCharImage(relic_width=relic_width, new_image=new_image, unit_img_path=unit_img_path)
-        addRelicImage(relic_width=relic_width, new_image=new_image, relic_final=relic_final, alignment=alignment)
+    new_image = Image.new('RGBA', (img_height, img_width), (0, 0, 0, 0))
 
-    elif relic_final[0] == 'G':
-        gear_offset = 30 // 2
-        new_image = Image.new('RGBA', (relic_width, relic_height - gear_offset), (0, 0, 0, 0))
-        relic_final = int(relic_final[1:])
-        log(f'joe error relic message {relic_final}')
-        addGearCharImage(gear_width=gear_width, gear_height=gear_height, new_image=new_image, unit_img_path=unit_img_path, gear_offset=gear_offset)
-        addGearImage(relic_width=gear_width, new_image=new_image, relic_height=gear_height, gear_final=relic_final, gear_offset=gear_offset)
+    if relic_final != '':
+        if relic_final[0] == 'R' or relic_final == 'G13':
+            new_image = Image.new('RGBA', (img_height, img_width), (0, 0, 0, 0))
+            relic_final = int(relic_final[1:]) if relic_final != 'G13' else 0
 
-    # new_image = addZeta(relic_width=relic_width, new_image=new_image)
-    # new_image = addOmicron(relic_width=relic_width, new_image=new_image)
+            addRelicCharImage(relic_width=img_width, new_image=new_image, unit_img_path=unit_img_path)
+            addRelicImage(relic_width=img_width, new_image=new_image, relic_final=relic_final, alignment=alignment)
+
+        elif relic_final[0] == 'G':
+            gear_offset = 30 // 2
+            new_image = Image.new('RGBA', (img_height, img_width - gear_offset), (0, 0, 0, 0))
+            relic_final = int(relic_final[1:])
+
+            addGearCharImage(gear_width=img_width, gear_height=gear_height, new_image=new_image, unit_img_path=unit_img_path, gear_offset=gear_offset)
+            addGearImage(relic_width=img_width, new_image=new_image, relic_height=gear_height, gear_final=relic_final, gear_offset=gear_offset)
+            # addStars(relic_width=img_width, new_image=new_image, stars=stars)
+
+    else:
+        new_image = Image.new('RGBA', (img_height, img_width), (0, 0, 0, 0))
+        addRelicCharImage(relic_width=img_width, new_image=new_image, unit_img_path=unit_img_path)
+        # new_image = addZeta(relic_width=relic_width, new_image=new_image)
+        # new_image = addOmicron(relic_width=relic_width, new_image=new_image)
+
     return new_image;
 
 def addGearCharImage(gear_width, gear_height, new_image, unit_img_path, gear_offset):
@@ -83,7 +95,24 @@ def addRelicBadge(relic_width, new_image, relic_final, alignment):
     font = ImageFont.truetype(f"{path}/source/Titillium-Regular.otf", 20)
     draw2 = ImageDraw.Draw(new_image)
     draw2.text(((new_image.width - 12) // 2, new_image.width - 37), str(relic_final), font=font, align="center", stroke_fill="black", stroke_width=3)
+
+def addStars(relic_height, new_image, stars, offset):
+
+    i = 1
+    star_active = Image.open(f"{path}/source/star-active.png").convert('RGBA')
+    star_inactive = Image.open(f"{path}/source/star-inactive.png").convert('RGBA')
     
+    while i <= 7:
+        if i <= stars:
+            relic_badge_offset = ((i-1) * star_inactive.width + 2 + offset, relic_height - star_inactive.height//4)
+            new_image.alpha_composite(star_active, dest=(relic_badge_offset))
+
+        else:
+            relic_badge_offset = ((i-1) * star_inactive.width + 2 + offset, relic_height - star_inactive.height//4)
+            new_image.alpha_composite(star_inactive, dest=(relic_badge_offset))
+
+        i += 1
+
 def addZeta(relic_width, new_image):
     zeta_img = Image.open(f"{path}/source/tex.skill_zeta_glow.png").convert('RGBA')
     zeta_size = (45, 45)
