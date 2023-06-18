@@ -104,11 +104,11 @@ def addStars(relic_height, new_image, stars, offset):
     
     while i <= 7:
         if i <= stars:
-            relic_badge_offset = ((i-1) * star_inactive.width + 2 + offset, relic_height - star_inactive.height//4)
+            relic_badge_offset = ((i-1) * star_inactive.width + 2 + offset, relic_height - star_inactive.height//2)
             new_image.alpha_composite(star_active, dest=(relic_badge_offset))
 
         else:
-            relic_badge_offset = ((i-1) * star_inactive.width + 2 + offset, relic_height - star_inactive.height//4)
+            relic_badge_offset = ((i-1) * star_inactive.width + 2 + offset, relic_height - star_inactive.height//2)
             new_image.alpha_composite(star_inactive, dest=(relic_badge_offset))
 
         i += 1
