@@ -10,6 +10,7 @@ healthcheck_url = str
 accomplishments_channel_id = int
 accomplishments_thread_id = int
 officers_channel_id = int
+relics_thread_id = int
 
 
 # These configs may optionally be set by local.py

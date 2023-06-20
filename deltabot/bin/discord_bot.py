@@ -32,20 +32,25 @@ player_data['name']
 guild_id = player_data['guildId']
 cur_chan = config.accomplishments_channel_id
 cur_thrd = config.accomplishments_thread_id
+relic_thrd = config.relics_thread_id
 off_chan = config.officers_channel_id
 GLOBAL_PATH = f'{config.TMP_DIR}/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
 GL_REQS = {}
 galactic_legends = set()
+journey_guides = set()
 units = comlink.get_game_data(include_pve_units=False, request_segment=4)
 layouts = units['unitGuideLayout']
 for layout in layouts:
-    if layout['id'] == 'GALACTIC_LEGENDS':
-        for layoutTier in layout['layoutTier']:
-            for line in layoutTier['layoutLine']:
-                for unit in line['unitGuideId']:
+    for layoutTier in layout['layoutTier']:
+        for line in layoutTier['layoutLine']:
+            for unit in line['unitGuideId']:
+                if layout['id'] == 'GALACTIC_LEGENDS':
                     galactic_legends.add(unit)
+                    journey_guides.add(unit)
+                elif layout['id'] == 'NESTING_DOLL':
+                    journey_guides.add(unit)
 
 GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0, 'unit_id_to_alignment': {}}
 def log(msg):
@@ -151,7 +156,8 @@ class MyClient(disnake.Client):
         if not isinstance(channel, disnake.TextChannel):
             raise ValueError("Invalid channel")
         thread = channel.get_thread(cur_thrd)
-        await thread.send("Bot starting")
+        relic_thread = channel.get_thread(relic_thrd)
+        await thread.send("Bot starting\n<@531637776542859265>")
 
         try:
             loop = asyncio.get_event_loop()
@@ -282,13 +288,17 @@ class MyClient(disnake.Client):
                         # elif os.path.exists(unit_img_path):
                         # embed.set_thumbnail(file=disnake.File(unit_img_path)) 
                         log(f'Attempting to send udate message for {player_name}')
-                        if hit_min:
+                        unlocked = stars_init == 0
+                        full_stars = stars_init != 7 and stars_final == 7
+                        if unit_name in journey_guides and (hit_min or unlocked or full_stars):
                             await channel.send(embed=embed)
+                        elif hit_min:
+                            await relic_thread.send(embed=embed)
                         else:
                             await thread.send(embed=embed)
 
                         if stars_init == 0 and unit_name in galactic_legends:
-                            await officers_channel.send(f'{player_name} unlocked {name}')
+                            await officers_channel.send(f'{player_name} unlocked {name}\n<@589628217112002571>')
 
                     deleted_keys.append(pID)
 
