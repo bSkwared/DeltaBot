@@ -22,7 +22,7 @@ handler = logging.FileHandler(filename=os.path.join(config.TMP_DIR,
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 disnake_logger.addHandler(handler)
 
-GL_REQS = {}
+
 
 SLEEP_S = 30
 SEQ_DELAY = 3
@@ -32,8 +32,20 @@ player_data['name']
 guild_id = player_data['guildId']
 cur_chan = config.accomplishments_channel_id
 cur_thrd = config.accomplishments_thread_id
+off_chan = config.officers_channel_id
 GLOBAL_PATH = f'{config.TMP_DIR}/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
+
+GL_REQS = {}
+galactic_legends = set()
+units = comlink.get_game_data(include_pve_units=False, request_segment=4)
+layouts = units['unitGuideLayout']
+for layout in layouts:
+    if layout['id'] == 'GALACTIC_LEGENDS':
+        for layoutTier in layout['layoutTier']:
+            for line in layoutTier['layoutLine']:
+                for unit in line['unitGuideId']:
+                    galactic_legends.add(unit)
 
 GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0, 'unit_id_to_alignment': {}}
 def log(msg):
@@ -132,6 +144,9 @@ class MyClient(disnake.Client):
         else:
             already_started = True
         # log(f'Logged on as {self.user}!')
+        officers_channel = self.get_channel(off_chan)
+        if not isinstance(officers_channel, disnake.TextChannel):
+            raise ValueError("Invalid officers channel")
         channel = self.get_channel(cur_chan)
         if not isinstance(channel, disnake.TextChannel):
             raise ValueError("Invalid channel")
@@ -177,7 +192,6 @@ class MyClient(disnake.Client):
                             log(f'Updating names since {d_split} not found in mapping')
                             last_updated_names = GLOBAL['cur_seq']
                             await loop.run_in_executor(None, update_unit_id_to_name)
-                        unit_name = GLOBAL['unit_id_to_name'].get(d_split, d_split)
                         unit_alignment = GLOBAL['unit_id_to_alignment'].get(d_split, 1)
 
                         if (not lc 
@@ -189,7 +203,7 @@ class MyClient(disnake.Client):
                             update = GLOBAL['player_updates'].get(npID, {})
                             update['last_updated'] = GLOBAL['cur_seq']
                             toons = update.get('toons', {})
-                            unit = toons.get(unit_name, {})
+                            unit = toons.get(d_split, {})
                             unit['initial_stars'] = min(lc['currentRarity'] if lc else 0,
                                                         unit.get('initial_stars', 999))
                             unit['initial_gear'] = min(lc['currentTier'] if lc else 0,
@@ -207,7 +221,7 @@ class MyClient(disnake.Client):
                                                            if (c and c.get('relic'))
                                                            else 0)
                             unit['alignment'] = unit_alignment
-                            toons[unit_name] = unit
+                            toons[d_split] = unit
                             update['toons'] = toons
                             GLOBAL['player_updates'][npID] = update
 
@@ -219,8 +233,9 @@ class MyClient(disnake.Client):
                         continue
 
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
-                    for name, stats in update['toons'].items():
+                    for unit_name, stats in update['toons'].items():
                         hit_min = False
+                        name = GLOBAL['unit_id_to_name'].get(unit_name, unit_name)
                         
                         gear_init = stats['initial_gear']
                         gear_final = stats['latest_gear']
@@ -271,6 +286,9 @@ class MyClient(disnake.Client):
                             await channel.send(embed=embed)
                         else:
                             await thread.send(embed=embed)
+
+                        if stars_init == 0 and unit_name in galactic_legends:
+                            await officers_channel.send(f'{player_name} unlocked {name}')
 
                     deleted_keys.append(pID)
 

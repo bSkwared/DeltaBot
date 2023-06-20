@@ -8,3 +8,4 @@ discord_token = 'DISCORD_BOT_TOKEN'
 healthcheck_url = 'http://example.com'
 accomplishments_channel_id = 1234
 accomplishments_thread_id = 1234
+officers_channel_id = 1234
