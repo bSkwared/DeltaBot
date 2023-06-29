@@ -37,7 +37,6 @@ off_chan = config.officers_channel_id
 GLOBAL_PATH = f'{config.TMP_DIR}/delta.json'
 TMP_GLOBAL_PATH = f'{GLOBAL_PATH}.tmp'
 
-GL_REQS = {}
 galactic_legends = set()
 journey_guides = set()
 units = comlink.get_game_data(include_pve_units=False, request_segment=4)
@@ -51,6 +50,17 @@ for layout in layouts:
                     journey_guides.add(unit)
                 elif layout['id'] == 'NESTING_DOLL':
                     journey_guides.add(unit)
+
+game_data_seg1 = comlink.get_game_data(include_pve_units=False, request_segment=1)
+skills = game_data_seg1['skill']
+zeta = {}
+omicron = {}
+for skill in skills:
+    for i, tier in enumerate(skill['tier']):
+        if tier['isZetaTier']:
+            zeta[skill['id']] = i
+        if tier['isOmicronTier']:
+            omicron[skill['id']] = i
 
 GLOBAL = {'guild': [], 'players': {}, 'last_players': {}, 'unit_id_to_name' : {}, 'player_updates': {}, 'cur_seq': 0, 'unit_id_to_alignment': {}}
 def log(msg):
@@ -90,10 +100,6 @@ def update_unit_id_to_name():
     GLOBAL['unit_id_to_name'] = id_to_name
     GLOBAL['unit_id_to_alignment'] = id_to_alignment
 
-
-
-
-
 def get_guild_data(gID):
     for _ in range(3):
         guild = comlink.get_guild(gID)
@@ -116,7 +122,7 @@ def get_player_data(pID):
         except:
             log(f'blake player: {player}')
     for c in player['rosterUnit']:
-        toon = {k: c[k] for k in ('id', 'relic', 'definitionId', 'currentRarity', 'currentTier')}
+        toon = {k: c[k] for k in ('id', 'relic', 'definitionId', 'currentRarity', 'currentTier', 'skill')}
         roster.append(toon)
 
     return {
@@ -157,7 +163,7 @@ class MyClient(disnake.Client):
             raise ValueError("Invalid channel")
         thread = channel.get_thread(cur_thrd)
         relic_thread = channel.get_thread(relic_thrd)
-        await thread.send("Bot starting\n<@531637776542859265>")
+        await thread.send(f"{datetime.datetime.now()} Bot starting\n")
 
         try:
             loop = asyncio.get_event_loop()
@@ -199,6 +205,21 @@ class MyClient(disnake.Client):
                             last_updated_names = GLOBAL['cur_seq']
                             await loop.run_in_executor(None, update_unit_id_to_name)
                         unit_alignment = GLOBAL['unit_id_to_alignment'].get(d_split, 1)
+                        latest_zeta_count = 0
+                        latest_omicron_count = 0
+                        for skill in c['skill']:
+                            if omicron.get(skill['id']) == skill['tier']:
+                                latest_omicron_count += 1
+                            if zeta.get(skill['id']) == skill['tier']:
+                                latest_zeta_count += 1
+
+                        initial_zeta_count = 0
+                        initial_omicron_count = 0
+                        for skill in lc['skill']:
+                            if omicron.get(skill['id']) == skill['tier']:
+                                initial_omicron_count += 1
+                            if zeta.get(skill['id']) == skill['tier']:
+                                initial_zeta_count += 1
 
                         if (not lc 
                             or c['currentRarity'] != lc['currentRarity']
@@ -214,6 +235,8 @@ class MyClient(disnake.Client):
                                                         unit.get('initial_stars', 999))
                             unit['initial_gear'] = min(lc['currentTier'] if lc else 0,
                                                        unit.get('initial_gear', 999))
+                            unit['initial_zeta_count'] = initial_zeta_count
+                            unit['initial_omicron_count'] = initial_omicron_count
                             try:
                                 unit['initial_relic'] = min(max(0, lc['relic']['currentTier'] - 2
                                                                if (lc and lc.get('relic'))
@@ -226,6 +249,9 @@ class MyClient(disnake.Client):
                             unit['latest_relic'] = max(0, c['relic']['currentTier'] - 2
                                                            if (c and c.get('relic'))
                                                            else 0)
+                            unit['latest_zeta_count'] = latest_zeta_count
+                            unit['latest_omicron_count'] = latest_omicron_count
+                        
                             unit['alignment'] = unit_alignment
                             toons[d_split] = unit
                             update['toons'] = toons
@@ -235,8 +261,8 @@ class MyClient(disnake.Client):
 
                 deleted_keys = []
                 for pID, update in GLOBAL['player_updates'].items():
-                    if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
-                        continue
+                    # if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
+                        # continue
 
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
                     for unit_name, stats in update['toons'].items():
@@ -249,6 +275,11 @@ class MyClient(disnake.Client):
                         relic_final = stats['latest_relic']
                         stars_init = stats['initial_stars']
                         stars_final = stats["latest_stars"]
+                        zeta_count_init = stats["initial_zeta_count"]
+                        zeta_count_latest = stats["latest_zeta_count"]
+                        omicron_count_init = stats["initial_omicron_count"]
+                        omicron_count_latest = stats["latest_omicron_count"]
+
                         init_gear_relic = ''
                         final_gear_relic = ''
 
@@ -258,8 +289,6 @@ class MyClient(disnake.Client):
 
                         init_gear_relic = f'G{gear_init}'
                         final_gear_relic = f'G{gear_final}'
-                        if name in GL_REQS:
-                            hit_min |= gear_init < 12 and gear_final >= 12
 
                         if (init_gear_relic == 'G1' and final_gear_relic == 'G1') or (init_gear_relic == 'G0' and final_gear_relic == 'G1'):
                             init_gear_relic = ''
@@ -282,7 +311,18 @@ class MyClient(disnake.Client):
                         if not os.path.exists(unit_img_path):
                             utils.update_unit_images(name)
 
-                        gen_path = gen.main(unit_img_path=unit_img_path, relic_final=final_gear_relic, relic_init=init_gear_relic, alignment=stats['alignment'], stars_init=stars_init, stars_final=stars_final)
+                        gen_path = gen.main(
+                            unit_img_path=unit_img_path, 
+                            relic_final=final_gear_relic, 
+                            relic_init=init_gear_relic, 
+                            alignment=stats['alignment'], 
+                            stars_init=stars_init, 
+                            stars_final=stars_final, 
+                            zeta_count_init = zeta_count_init,
+                            zeta_count_latest = zeta_count_latest,
+                            omicron_count_init = omicron_count_init,
+                            omicron_count_latest = omicron_count_latest
+                            )
                         if os.path.exists(gen_path):
                             embed.set_image(file=disnake.File(gen_path))
                         # elif os.path.exists(unit_img_path):
@@ -315,7 +355,7 @@ class MyClient(disnake.Client):
                 except:
                     log(f'Failed to update {GLOBAL_PATH}')
                 log(f'Begin sleeping for {SLEEP_S}s')
-                await asyncio.sleep(SLEEP_S)
+                # await asyncio.sleep(SLEEP_S)
                 # await asyncio.sleep(1000)
                 for _ in range(3):
                     try:
