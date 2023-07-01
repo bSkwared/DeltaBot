@@ -215,7 +215,7 @@ class MyClient(disnake.Client):
 
                         initial_zeta_count = 0
                         initial_omicron_count = 0
-                        for skill in lc['skill']:
+                        for skill in lc['skill'] if lc else []:
                             if omicron.get(skill['id']) == skill['tier']:
                                 initial_omicron_count += 1
                             if zeta.get(skill['id']) == skill['tier']:

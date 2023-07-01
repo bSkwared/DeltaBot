@@ -124,7 +124,7 @@ def add_zeta(relic_width, base_image, zeta_cnt):
     base_image.alpha_composite(zeta_img, dest=(zeta_offset))
     font2 = ImageFont.truetype(f"{path}/source/Titillium-Regular.otf", 20)
     draw2 = ImageDraw.Draw(base_image)
-    draw2.text(((base_image.width - 90) // 2, base_image.width - 62), zeta_cnt, font=font2, align="center", stroke_fill="black", stroke_width=1)
+    draw2.text(((base_image.width - 90) // 2 -1, base_image.width - 59), zeta_cnt, font=font2, align="center", stroke_fill="black", stroke_width=1)
     return base_image
 
 def add_omicron(relic_width, base_image, omicron_cnt):
