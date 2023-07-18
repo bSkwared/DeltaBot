@@ -322,7 +322,7 @@ class MyClient(disnake.Client):
                             zeta_count_latest = zeta_count_latest,
                             omicron_count_init = omicron_count_init,
                             omicron_count_latest = omicron_count_latest,
-                            unit_name='-'.join(name.split()).lower()
+                            unit_name=''.join(name.split()).lower()
                             )
                         if os.path.exists(gen_path):
                             embed.set_image(file=disnake.File(gen_path))
