@@ -9,7 +9,7 @@ path = config.base_dir
 def log(msg):
     utils.logger.info(msg)
 
-def main(unit_img_path, relic_final, relic_init, alignment, stars_init, stars_final, zeta_count_init, zeta_count_latest, omicron_count_init ,omicron_count_latest):
+def main(unit_img_path, relic_final, relic_init, alignment, stars_init, stars_final, zeta_count_init, zeta_count_latest, omicron_count_init, omicron_count_latest, unit_name):
     img_height = 160
     img_width = 160
     gear_height = 130
@@ -24,8 +24,8 @@ def main(unit_img_path, relic_final, relic_init, alignment, stars_init, stars_fi
     base_image.alpha_composite(init_img, dest=(0, 0))
     base_image.alpha_composite(arrow_img, dest=(150, -10))
     base_image.alpha_composite(final_img, dest=(160*2, 0))
-    base_image.save(f"{path}/tmp/unit_change.png")
-    return f"{path}/tmp/unit_change.png"
+    base_image.save(f"{path}/tmp/{relic_init}-{relic_final}-{unit_name}.png")
+    return f"{path}/tmp/{relic_init}-{relic_final}-{unit_name}.png"
 
 def gen_img(unit_img_path, relic_final, alignment, stars, img_height, img_width, zeta_cnt, omicron_cnt):
     gear_height = 130
