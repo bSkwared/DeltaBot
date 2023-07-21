@@ -128,7 +128,8 @@ def get_player_data(pID):
     return {
             'name': player['name'],
             'rosterUnit': roster,
-            'playerId': player['playerId']
+            'playerId': player['playerId'],
+            'lastActivityTime': player['lastActivityTime'],
     }
 
 def update_players():
@@ -146,6 +147,7 @@ def update_players():
     GLOBAL['players'] = players
 
 already_started = False
+inactivities = {}
 
 class MyClient(disnake.Client):
     async def on_ready(self):
@@ -206,6 +208,16 @@ class MyClient(disnake.Client):
 
                         for trash_player in trash_players:
                             GLOBAL['last_players'].pop(trash_player)
+
+                    # check for 24h inactivity
+                    last_activity = datetime.datetime.fromtimestamp(int(np['lastActivityTime'])//1000)
+                    days_inactive = (datetime.datetime.now() - last_activity).days
+                    if days_inactive > inactivities.get(npID, 0):
+                        inactivities[npID] = days_inactive
+                        await officers_channel.send(f'{np.get("name", "UNKNOWN")} has been inactive for {days_inactive} days')
+
+                    elif days_inactive == 0 and npID in inactivities:
+                        del inactivities[npID]
 
                     msg = []
                     lp_roster = {c['id']: c for c in lp['rosterUnit']}
@@ -273,8 +285,8 @@ class MyClient(disnake.Client):
 
                 deleted_keys = []
                 for pID, update in GLOBAL['player_updates'].items():
-                    # if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
-                        # continue
+                    if update['last_updated'] + SEQ_DELAY > GLOBAL['cur_seq']:
+                        continue
 
                     player_name = GLOBAL["players"].get(pID, {}).get("name", "UNKNOWN")
                     for unit_name, stats in update['toons'].items():
