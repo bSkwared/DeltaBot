@@ -19,6 +19,7 @@ relics_thread_id = int
 # the bigger files in another directory.
 resource_dir_name = 'resources'
 tmp_dir_name = 'tmp'
+daily_data_dir_name = 'daily_data'
 stats_db_name = 'stats.sqlite3'
 
 __current_dir = os.path.split(os.path.realpath(__file__))[0]
@@ -53,6 +54,8 @@ for k, v in local.__dict__.items():
 # These configs SHALL NOT be set by local.py
 TMP_DIR = os.path.join(base_dir, tmp_dir_name)
 RESOURCE_DIR = os.path.join(base_dir, resource_dir_name)
+DAILY_DATA_DIR = os.path.join(base_dir, daily_data_dir_name)
 STATS_DB = os.path.join(TMP_DIR, stats_db_name)
 os.makedirs(TMP_DIR, exist_ok=True)
 os.makedirs(RESOURCE_DIR, exist_ok=True)
+os.makedirs(DAILY_DATA_DIR, exist_ok=True)
