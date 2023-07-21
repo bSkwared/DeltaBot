@@ -163,7 +163,7 @@ class MyClient(disnake.Client):
             raise ValueError("Invalid channel")
         thread = channel.get_thread(cur_thrd)
         relic_thread = channel.get_thread(relic_thrd)
-        await thread.send(f"{datetime.datetime.now()} Bot starting\n")
+        await thread.send(f"{datetime.datetime.now()} Bot starting <@531637776542859265>\n")
 
         try:
             loop = asyncio.get_event_loop()
@@ -334,7 +334,7 @@ class MyClient(disnake.Client):
                             zeta_count_latest = zeta_count_latest,
                             omicron_count_init = omicron_count_init,
                             omicron_count_latest = omicron_count_latest,
-                            unit_name='-'.join(name.split()).lower()
+                            unit_name=''.join(filter(str.isalnum, '-'.join(name.split()))).lower()
                             )
                         if os.path.exists(gen_path):
                             embed.set_image(file=disnake.File(gen_path))
