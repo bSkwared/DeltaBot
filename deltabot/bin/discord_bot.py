@@ -192,8 +192,20 @@ class MyClient(disnake.Client):
                 for npID, np in GLOBAL['players'].items():
                     lp = GLOBAL['last_players'].get(npID)
                     if lp == None:
+                        await officers_channel.send(f'<@589628217112002571> {np.get("name", "UNKNOWN")} has joined the guild')
                         # Don't print diff for new players
                         continue
+                    else:
+                        trash_players = []
+                        for lastpID, lastp in GLOBAL['last_players'].items():
+                            oldp = GLOBAL['players'].get(lastpID)
+                            if oldp == None:
+                                await officers_channel.send(f'<@589628217112002571> {lastp.get("name", "UNKNOWN")} has left the guild')
+                                trash_players.append(lastpID)
+                                continue
+
+                        for trash_player in trash_players:
+                            GLOBAL['last_players'].pop(trash_player)
 
                     msg = []
                     lp_roster = {c['id']: c for c in lp['rosterUnit']}
