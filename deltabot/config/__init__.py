@@ -10,6 +10,8 @@ healthcheck_url = str
 accomplishments_channel_id = int
 accomplishments_thread_id = int
 officers_channel_id = int
+officers_gl_unlock_thread_id = int
+officers_inactivities_thread_id = int
 relics_thread_id = int
 
 

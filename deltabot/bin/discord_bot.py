@@ -167,6 +167,9 @@ class MyClient(disnake.Client):
         relic_thread = channel.get_thread(relic_thrd)
         await thread.send(f"{datetime.datetime.now()} Bot starting <@531637776542859265>\n")
 
+        inactivities_thread = officers_channel.get_thread(config.officers_inactivities_thread_id)
+        gl_unlock_thread = officers_channel.get_thread(config.officers_gl_unlock_thread_id)
+
         try:
             loop = asyncio.get_event_loop()
 
@@ -214,7 +217,8 @@ class MyClient(disnake.Client):
                     days_inactive = (datetime.datetime.now() - last_activity).days
                     if days_inactive > inactivities.get(npID, 0):
                         inactivities[npID] = days_inactive
-                        await officers_channel.send(f'{np.get("name", "UNKNOWN")} has been inactive for {days_inactive} days')
+                        day_str = 'days' if days_inactive > 1 else 'day'
+                        await inactivities_thread.send(f'{np.get("name", "UNKNOWN")} has been inactive for {days_inactive} {day_str}')
 
                     elif days_inactive == 0 and npID in inactivities:
                         del inactivities[npID]
@@ -363,7 +367,7 @@ class MyClient(disnake.Client):
                             await thread.send(embed=embed)
 
                         if stars_init == 0 and unit_name in galactic_legends:
-                            await officers_channel.send(f'{player_name} unlocked {name}\n<@589628217112002571>')
+                            await gl_unlock_thread.send(f'{player_name} unlocked {name}\n<@589628217112002571>')
 
                     deleted_keys.append(pID)
 
