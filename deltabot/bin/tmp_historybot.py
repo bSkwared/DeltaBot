@@ -170,7 +170,6 @@ import plotly.express as px
 '''
 end = WD.get_current_datetime()
 start = end - datetime.timedelta(days=args.duration)
-'''
 
 gp_names = ['redfox', 'sapp']
 gp_diff = [100, 200]
@@ -189,4 +188,93 @@ fig.update_xaxes(dtick=1)
 fig.update_layout(barmode='stack', xaxis={'categoryorder':'total ascending'})
 fig.write_image("tmp/fig2.png")
 print(len(gp_names))
+'''
 
+def raw_mod_value(speed_mods):
+    total = 0
+    for speed, count in enumerate(speed_mods):
+        if speed <= 10:
+            continue
+
+        speed_value = (  -6.3058820272303500e+000 * (speed**0)
+                       +  1.3035991984201347e+000 * (speed**1)
+                       + -9.6654093848707642e-002 * (speed**2)
+                       +  2.7728738967038821e-003 * (speed**3))
+
+        total += count * speed_value
+
+    return total
+
+def modscore(speed_mods, char_gp):
+    return raw_mod_value(speed_mods) / (char_gp * 3 / 100_000)
+
+def get_subject_allycode(author, allycode, user):
+    if allycode and user:
+        raise Exception('Please provide only an allycode or a user (or neither)')
+
+    subject_allycode = None
+    if allycode:
+        if len(allycode) != 9 or not allycode.isdigit():
+            raise Exception(f'invalid allycode (should be 9 digits): {allycode}')
+        return allycode
+
+    else:
+        author_username = name_tag_combine(author.name, author.tag)
+        subject_username = author_username if not user else name_tag_combine(user.name, user.tag)
+        if subject_username not in user_to_ally:
+            raise Exception(f'Unable to find allycode for {author_username}')
+        return user_to_ally[subject_username]
+
+@bot.slash_command(name="bbbbbbbbbindividual")
+async def bbbbbbbbbindividual(inter, allycode: str = None, user: disnake.User = None):
+    try:
+        subject_allycode = get_subject_allycode(inter.author, allycode, user)
+    except Exception as e:
+        await inter.response.send_message(str(e))
+        return
+
+    await inter.response.defer()
+
+
+    date_modscore = {}
+    latest_name = None
+    name = ''
+    for filename in os.listdir(config.DAILY_DATA_DIR):
+        try:
+            year, month, day = map(int, filename[:-3].split('_'))
+        except:
+            continue
+
+        with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
+            guild_data = json.load(fp)
+
+        individual_data = guild_data.get('guild_members', {}).get(subject_allycode, {})
+        char_gp = individual_data.get('char_gp')
+        speed_mods = individual_data.get('speed_mods')
+        cur_name  = individual_data.get('name')
+        if not individual_data or not char_gp or not speed_mods:
+            continue
+
+        date_modscore[datetime.datetime(year, month, day)] = modscore(speed_mods, char_gp)
+        date_modscore[datetime.datetime(year, month, day)] = raw_mod_value(speed_mods) / 100
+
+        if cur_name and (latest_name == None or datetime.datetime(year, month, day) > latest_name):
+            name = cur_name
+            latest_name = datetime.datetime(year, month, day)
+
+    dates = []
+    modscores = []
+    for date in sorted(date_modscore.keys()):
+        dates.append(date)
+        modscores.append(date_modscore[date])
+
+    if not dates or not modscores:
+        await inter.followup.send('unable to find data')
+        return
+    fig = px.line({'Date': dates, 'Modscore': modscores}, x='Date', y='Modscore')
+    fig_filepath = os.path.join(config.TMP_DIR, f'{subject_allycode}_individual_gp.png')
+    fig.write_image(fig_filepath)
+    #await inter.response.send_message(file=disnake.File(fig_filepath))
+    await inter.followup.send(file=disnake.File(fig_filepath))
+
+bot.run(config.discord_token)
