@@ -217,7 +217,7 @@ class MyClient(disnake.Client):
                     days_inactive = (datetime.datetime.now() - last_activity).days
                     if days_inactive > inactivities.get(npID, 0):
                         inactivities[npID] = days_inactive
-                        day_str = 'days' if days_inactive > 1 else 'day'
+                        day_str = 'days <@&962890734174892112>' if days_inactive > 1 else 'day'
                         await inactivities_thread.send(f'{np.get("name", "UNKNOWN")} has been inactive for {days_inactive} {day_str}')
 
                     elif days_inactive == 0 and npID in inactivities:
