@@ -169,6 +169,7 @@ class MyClient(disnake.Client):
 
         inactivities_thread = officers_channel.get_thread(config.officers_inactivities_thread_id)
         gl_unlock_thread = officers_channel.get_thread(config.officers_gl_unlock_thread_id)
+        joins_leaves_thread = officers_channel.get_thread(config.officers_joins_leaves_thread_id)
 
         try:
             loop = asyncio.get_event_loop()
@@ -197,7 +198,7 @@ class MyClient(disnake.Client):
                 for npID, np in GLOBAL['players'].items():
                     lp = GLOBAL['last_players'].get(npID)
                     if lp == None:
-                        await officers_channel.send(f'<@&962890734174892112> {np.get("name", "UNKNOWN")} has joined the guild')
+                        await joins_leaves_thread.send(f'<@&962890734174892112> {np.get("name", "UNKNOWN")} has joined the guild')
                         # Don't print diff for new players
                         continue
                     else:
@@ -205,7 +206,7 @@ class MyClient(disnake.Client):
                         for lastpID, lastp in GLOBAL['last_players'].items():
                             oldp = GLOBAL['players'].get(lastpID)
                             if oldp == None:
-                                await officers_channel.send(f'<@&962890734174892112> {lastp.get("name", "UNKNOWN")} has left the guild')
+                                await joins_leaves_thread.send(f'<@&962890734174892112> {lastp.get("name", "UNKNOWN")} has left the guild')
                                 trash_players.append(lastpID)
                                 continue
 
