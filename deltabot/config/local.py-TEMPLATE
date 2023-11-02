@@ -11,4 +11,5 @@ accomplishments_thread_id = 1234
 officers_channel_id = 1234
 officers_gl_unlock_thread_id = 1234
 officers_inactivities_thread_id = 1234
+officers_joins_leaves_thread_id = 1234
 relics_thread_id = 1234
