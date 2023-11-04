@@ -14,10 +14,28 @@ import urllib.request
 
 date_name = datetime.datetime.now().strftime("%Y_%m_%d.py")
 data_file = os.path.join(config.DAILY_DATA_DIR, date_name)
+
+yesterday_name = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y_%m_%d.py")
+yesterday_file = os.path.join(config.DAILY_DATA_DIR, yesterday_name)
+
 print(date_name)
 print(data_file)
+print(yesterday_file)
 unit_to_idx = {}
 unit_file = os.path.join(config.DAILY_DATA_DIR, 'unit_to_idx.py')
+
+yesterday_tickets = {}
+try:
+    with open(yesterday_file, 'r') as fp:
+        yesterday_data = json.load(fp)
+except:
+    pass
+
+for ac, player in yesterday_data['guild_members'].items():
+    try:
+        yesterday_tickets[ac] = {'today_tickets': player['today_tickets'], 'total_tickets': player['total_tickets']}
+    except:
+        pass
 
 try:
     with open(unit_file, 'r') as fp:
@@ -35,7 +53,7 @@ next_idx = (max(idx_to_unit.keys()) + 1) if idx_to_unit else 0
 
 def get_guild_data(gID):
     for _ in range(3):
-        guild = comlink.get_guild(gID)
+        guild = comlink.get_guild(gID, include_recent_guild_activity_info=True)
         if isinstance(guild, dict) and 'member' in guild:
             return guild
 
@@ -74,13 +92,30 @@ data = {
     'guild_name': raw_guild_data['profile']['name'],
     'rote_stars': rote_stars,
     'guild_members': {
-    }
-
+    },
+    'krayt_damage': -1,
+    'endor_damage': -1,
 }
+
+pid_raid_damage = {}
+cur_raid_id = None
+assert len(raw_guild_data['recentRaidResult']) <= 1
+for raid in raw_guild_data['recentRaidResult']:
+    if raid['raidId'] == 'kraytdragon':
+        cur_raid_id = 'krayt_damage'
+    elif 'endor' in raid['raidId']:
+        cur_raid_id = 'endor_damage'
+
+    if cur_raid_id in data:
+        data[cur_raid_id] = int(raid['guildRewardScore'])
+        for member in raid['raidMember']:
+            pid_raid_damage[member['playerId']] = int(member['memberProgress'])
+
 
 players = {}
 for p in raw_guild_data['member']:
     raw_player_data = get_player_data(p['playerId'])
+    past_tickets = yesterday_tickets.get(raw_player_data['allyCode'], {})
     player_data = {
         'name': raw_player_data['name'],
         'char_gp': -1,
@@ -88,7 +123,24 @@ for p in raw_guild_data['member']:
         'toon_stars': [],
         'toon_gears': [],
         'speed_mods': [0] * 40,
+        'yesterday_tickets': past_tickets.get('today_tickets', -1),
+        'yesterday_total_tickets': past_tickets.get('total', -1),
+        'total_tickets': -1,
+        'today_tickets': -1,
+        'krayt_damage': -1,
+        'endor_damage': -1,
     }
+    for contribution in p['memberContribution']:
+        if contribution['type'] == 2:
+            player_data['today_tickets'] = int(contribution['currentValue'])
+            player_data['total_tickets'] = int(contribution['lifetimeValue'])
+
+    if cur_raid_id in player_data:
+        player_data[cur_raid_id] = pid_raid_damage.get(p['playerId'], -1)
+
+    guild = raw_guild_data
+    #comlink.get_guild(guild_id, True)
+    # guild['recentRaidResult'][0]['raidMember'][1]
 
     stats = raw_player_data['profileStat']
     for stat in stats:
@@ -131,7 +183,6 @@ for p in raw_guild_data['member']:
             if not has_speed and mod['primaryStat']['stat']['unitStatId'] != 5:
                 player_data['speed_mods'][0] += 1
         
-
 
 with open(data_file, 'w') as fp:
     json.dump(data, fp, indent=2)
