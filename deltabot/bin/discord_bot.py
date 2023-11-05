@@ -130,6 +130,7 @@ def get_player_data(pID):
             'rosterUnit': roster,
             'playerId': player['playerId'],
             'lastActivityTime': player['lastActivityTime'],
+            'allycode': player['allyCode'],
     }
 
 def update_players():
@@ -220,6 +221,20 @@ class MyClient(disnake.Client):
                         inactivities[npID] = days_inactive
                         day_str = 'days <@&962890734174892112>' if days_inactive > 1 else 'day'
                         await inactivities_thread.send(f'{np.get("name", "UNKNOWN")} has been inactive for {days_inactive} {day_str}')
+                        date_name = datetime.datetime.now().strftime("INACTIVE_%Y_%m_%d.py")
+                        data_file = os.path.join(config.DAILY_DATA_DIR, date_name)
+                        inactives = {}
+                        try:
+                            with open(data_file, 'r') as fp:
+                                inactives = json.load(fp)
+                        except:
+                            pass
+                        inactives[np['allycode']] = days_inactive
+                        try:
+                            with open(data_file, 'w') as fp:
+                                json.dump(inactives, fp)
+                        except:
+                            pass
 
                     elif days_inactive == 0 and npID in inactivities:
                         del inactivities[npID]
@@ -366,6 +381,11 @@ class MyClient(disnake.Client):
                             await relic_thread.send(embed=embed)
                         else:
                             await thread.send(embed=embed)
+
+                        try:
+                            os.remove(gen_path)
+                        except:
+                            pass
 
                         if stars_init == 0 and unit_name in galactic_legends:
                             await gl_unlock_thread.send(f'{player_name} unlocked {name}\n<@589628217112002571>')
