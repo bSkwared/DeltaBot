@@ -5,6 +5,7 @@ import config
 import disnake
 import stackprinter
 import json
+import re
 from swgoh_comlink import SwgohComlink
 import requests
 import urllib.request
@@ -366,7 +367,8 @@ class MyClient(disnake.Client):
                             zeta_count_latest = zeta_count_latest,
                             omicron_count_init = omicron_count_init,
                             omicron_count_latest = omicron_count_latest,
-                            unit_name=''.join(filter(str.isalnum, '-'.join(name.split()))).lower()
+                            unit_name=re.sub(r"[^A-Za-z0-9]+", '', '-'.join(name.split()) ).lower(),
+                            player_name='-'.join(player_name.split()),
                             )
                         if os.path.exists(gen_path):
                             embed.set_image(file=disnake.File(gen_path))
@@ -383,7 +385,7 @@ class MyClient(disnake.Client):
                             await thread.send(embed=embed)
 
                         try:
-                            os.remove(gen_path)
+                            pass
                         except:
                             pass
 
