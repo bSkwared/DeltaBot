@@ -220,7 +220,7 @@ class MyClient(disnake.Client):
                     days_inactive = (datetime.datetime.now() - last_activity).days
                     if days_inactive > inactivities.get(npID, 0):
                         inactivities[npID] = days_inactive
-                        day_str = 'days <@&962890734174892112>' if days_inactive > 1 else 'day'
+                        day_str = 'days <@&894268297812541480>' if days_inactive > 1 else 'day'
                         await inactivities_thread.send(f'{np.get("name", "UNKNOWN")} has been inactive for {days_inactive} {day_str}')
                         date_name = datetime.datetime.now().strftime("INACTIVE_%Y_%m_%d.py")
                         data_file = os.path.join(config.DAILY_DATA_DIR, date_name)
