@@ -2,11 +2,18 @@ import config
 import datetime
 import json
 import os
+import plotly.express as px
+
+import numpy as np
+
 
 import disnake
 from disnake.ext import commands
 
 import plotly.graph_objects as go
+import pandas as pd
+
+import datetime
 
 bot = commands.Bot()
 
@@ -82,8 +89,6 @@ def name_tag_combine(name, tag):
     return username
 
 
-import datetime
-import plotly.express as px
 
 '''
 end = WD.get_current_datetime()
@@ -210,7 +215,6 @@ async def progression(
 
 
     ac_data = {}
-    ac_dates = {}
     ac_latest_name = {}
     ac_last_name_date = {}
     for cur_date in days:
@@ -222,15 +226,12 @@ async def progression(
             continue
 
         for sac in subject_allycodes:
-            data = cur_stat['load_func'](guild_data, sac)
-            if data != None:
-                if sac not in ac_data:
-                    ac_data[sac] = []
-                    ac_dates[sac] = []
-                ac_data[sac].append(data)
-                ac_dates[sac].append(cur_date)
+            if sac not in ac_data:
+                ac_data[sac] = []
+            ac_data[sac].append(cur_stat['load_func'](guild_data, sac))
 
-        cur_name  = guild_data.get(sac, {}).get('name')
+        cur_name  = guild_data['guild_members'].get(sac, {}).get('name')
+        print(cur_name)
         cur_name_newer = ac_last_name_date.get(sac) == None or cur_date > ac_last_name_date.get(sac)
         if cur_name and cur_name_newer:
             ac_latest_name[sac] = cur_name
@@ -241,10 +242,20 @@ async def progression(
         return
 
     
-    print(ac_data)
-    print(ac_dates)
     print(days)
-    fig = px.line({'Date': ac_dates, cur_stat['ui_name']: ac_data}, x='Date', y=cur_stat['ui_name'])
+    print(ac_data)
+    print(ac_latest_name)
+    plot_data = {'Date': days}
+    names = []
+    for ac, gps in ac_data.items():
+        plot_data[ac_latest_name[ac]] = gps
+        names.append(ac_latest_name[ac])
+
+    df = pd.DataFrame.from_dict(plot_data)
+    print(df)
+    print(f'columns: {df.columns[1]}')
+    print(f'columns: {df.columns}')
+    fig = px.line(df, x='Date', y=df.columns[1:])
     fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
     fig.write_image(fig_filepath)
     await inter.followup.send(file=disnake.File(fig_filepath))
