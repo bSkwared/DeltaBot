@@ -80,88 +80,6 @@ def name_tag_combine(name, tag):
     if tag and tag != '0':
         username += f'#{tag}'
     return username
-'''
-
-
-@bot.slash_command(name="bbbbbbbbbindividual")
-async def bbbbbbbbbindividual(inter, allycode: str = None, user: disnake.User = None):
-    author_username = name_tag_combine(inter.author.name, inter.author.tag)
-
-    if allycode and user:
-        await inter.response.send_message('Please provide only an allycode or a user (or neither)')
-        return
-
-    gp_allycode = None
-    if allycode:
-        if len(allycode) != 9 or not allycode.isdigit():
-            await inter.response.send_message(f'invalid allycode (should be 9 digits): {allycode}')
-            return
-        gp_allycode = allycode
-
-    else:
-        subject_username = author_username if not user else name_tag_combine(user.name, user.tag)
-        if subject_username not in user_to_ally:
-            await inter.response.send_message(f'Unable to find allycode for {author_username}')
-            return
-        gp_allycode = user_to_ally[subject_username]
-
-
-
-    date_gp = {}
-    latest_name = None
-    name = ''
-    for filename in os.listdir(config.DAILY_DATA_DIR):
-        try:
-            year, month, day = map(int, filename[:-3].split('_'))
-        except:
-            continue
-
-        with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
-            guild_data = json.load(fp)
-
-        individual_data = guild_data.get('guild_members', {}).get(gp_allycode, {})
-        ship_gp = individual_data.get('ship_gp')
-        char_gp = individual_data.get('char_gp')
-        cur_name  = individual_data.get('name')
-        if ship_gp != None and char_gp != None:
-            date_gp[datetime.datetime(year, month, day)] = ship_gp + char_gp
-
-        if cur_name and (latest_name == None or datetime.datetime(year, month, day) > latest_name):
-            name = cur_name
-            latest_name = datetime.datetime(year, month, day)
-
-    if not name:
-        name = allycode
-    dates = []
-    GPs = []
-    for date in sorted(date_gp.keys()):
-        dates.append(date)
-        GPs.append(date_gp[date])
-
-    if not dates or not GPs:
-        await inter.response.send_message('unable to find data')
-    else:
-        fig = go.Figure()
-        fig.add_trace(go.Line(x=dates, y=GPs))
-        fig.update_layout(
-            title=f"{name}'s GP Growth",
-            xaxis_title="Date",
-            yaxis_title="GP",
-        )
-
-
-        fig_filepath = os.path.join(config.TMP_DIR, f'{allycode}_individual_gp.png')
-        fig.write_image(fig_filepath)
-        await inter.response.send_message(file=disnake.File(fig_filepath))
-
-
-
-
-
-bot.run(config.discord_token)
-'''
-
-
 
 
 import datetime
@@ -226,11 +144,28 @@ def get_subject_allycode(author, allycode, user):
         return user_to_ally[subject_username]
 
 
-def load_gp():
+def load_gp(daily_data, allycode):
+    individual_data = daily_data.get('guild_members', {}).get(allycode, {})
+    if 'char_gp' not in individual_data or 'ship_gp' not in individual_data:
+        return None
+
+    return individual_data['char_gp'] + individual_data['ship_gp']
+
+
+def load_modscore(daily_data, allycode):
+    individual_data = daily_data.get('guild_members', {}).get(subject_allycode, {})
     return 100
 
+
 STATS = {
-        'gp': load_gp,
+        'gp': {
+            'ui_name': 'GP',
+            'load_func': load_gp,
+        },
+        'modscore': {
+            'ui_name': 'Modscore',
+            'load_func': load_modscore,
+        },
 }
 
 async def autocomp_stats(inter: disnake.ApplicationCommandInteraction, user_input: str):
@@ -238,57 +173,82 @@ async def autocomp_stats(inter: disnake.ApplicationCommandInteraction, user_inpu
 
 
 
-@bot.slash_command(name="progression")
-async def progression(inter, stat: str = commands.Param(autocomplete=autocomp_stat), allycode: str = None, user: disnake.User = None):
+@bot.slash_command(name="progression", description="Show chart of progression based on chosen stat")
+async def progression(
+        inter,
+        stat: str = commands.Param(autocomplete=autocomp_stats, description='What stat to show progression in'),
+        days_back: int = commands.Param(description='How many days to go back in history', default=30, ge=1000),
+        guild_combined: bool = False,
+        allycode: str = commands.param(description='Defaults to who ran this command', default=None),
+        user: disnake.User = commands.param(description='Defaults to who ran this command', default=None),
+        ally1: str = commands.param(description='Additional allycode to chart', default=None),
+        ally2: str = commands.param(description='Additional allycode to chart', default=None),
+        ally3: str = commands.param(description='Additional allycode to chart', default=None),
+        ally4: str = commands.param(description='Additional allycode to chart', default=None),
+        user1: disnake.User = commands.param(description='Additional user to chart', default=None),
+        user2: disnake.User = commands.param(description='Additional user to chart', default=None),
+        user3: disnake.User = commands.param(description='Additional user to chart', default=None),
+        user4: disnake.User = commands.param(description='Additional user to chart', default=None),
+        ):
     try:
         subject_allycode = get_subject_allycode(inter.author, allycode, user)
     except Exception as e:
         await inter.response.send_message(str(e))
         return
 
+    subject_allycodes = [subject_allycode] 
+
     await inter.response.defer()
+    cur_stat = STATS[stat]
+    days = []
+    now = datetime.datetime.now()
+    cur_date = now - datetime.timedelta(days=days_back)
+    while cur_date <= now:
+        days.append(datetime.datetime(day=cur_date.day, month=cur_date.month, year=cur_date.year))
+        cur_date += datetime.timedelta(days=1)
 
 
-    date_modscore = {}
-    latest_name = None
-    name = ''
-    for filename in os.listdir(config.DAILY_DATA_DIR):
+
+    ac_data = {}
+    ac_dates = {}
+    ac_latest_name = {}
+    ac_last_name_date = {}
+    for cur_date in days:
+        filename = cur_date.strftime("%Y_%m_%d.py")
         try:
-            year, month, day = map(int, filename[:-3].split('_'))
+            with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
+                guild_data = json.load(fp)
         except:
             continue
 
-        with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
-            guild_data = json.load(fp)
+        for sac in subject_allycodes:
+            data = cur_stat['load_func'](guild_data, sac)
+            if data != None:
+                if sac not in ac_data:
+                    ac_data[sac] = []
+                    ac_dates[sac] = []
+                ac_data[sac].append(data)
+                ac_dates[sac].append(cur_date)
 
-        individual_data = guild_data.get('guild_members', {}).get(subject_allycode, {})
-        char_gp = individual_data.get('char_gp')
-        speed_mods = individual_data.get('speed_mods')
-        cur_name  = individual_data.get('name')
-        if not individual_data or not char_gp or not speed_mods:
-            continue
+        cur_name  = guild_data.get(sac, {}).get('name')
+        cur_name_newer = ac_last_name_date.get(sac) == None or cur_date > ac_last_name_date.get(sac)
+        if cur_name and cur_name_newer:
+            ac_latest_name[sac] = cur_name
+            ac_last_name_date[sac] = cur_date
 
-        date_modscore[datetime.datetime(year, month, day)] = modscore(speed_mods, char_gp)
-        date_modscore[datetime.datetime(year, month, day)] = raw_mod_value(speed_mods) / 100
-
-        if cur_name and (latest_name == None or datetime.datetime(year, month, day) > latest_name):
-            name = cur_name
-            latest_name = datetime.datetime(year, month, day)
-
-    dates = []
-    modscores = []
-    for date in sorted(date_modscore.keys()):
-        dates.append(date)
-        modscores.append(date_modscore[date])
-
-    if not dates or not modscores:
+    if not ac_data:
         await inter.followup.send('unable to find data')
         return
-    fig = px.line({'Date': dates, 'Modscore': modscores}, x='Date', y='Modscore')
-    fig_filepath = os.path.join(config.TMP_DIR, f'{subject_allycode}_individual_gp.png')
+
+    
+    print(ac_data)
+    print(ac_dates)
+    print(days)
+    fig = px.line({'Date': ac_dates, cur_stat['ui_name']: ac_data}, x='Date', y=cur_stat['ui_name'])
+    fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
     fig.write_image(fig_filepath)
-    #await inter.response.send_message(file=disnake.File(fig_filepath))
     await inter.followup.send(file=disnake.File(fig_filepath))
+
     try:
         os.remove(fig_filepath)
     except:
