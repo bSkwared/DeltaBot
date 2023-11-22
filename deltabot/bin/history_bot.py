@@ -284,7 +284,7 @@ async def autocomp_stats(inter: disnake.ApplicationCommandInteraction, user_inpu
 async def progression(
         inter,
         stat: str = commands.Param(autocomplete=autocomp_stats, description='What stat to show progression in'),
-        days_back: int = commands.Param(description='How many days to go back in history', default=30, le=1000),
+        days_back: int = commands.Param(description='How many days to go back in history', default=90, le=1000),
         guild_combined: bool = commands.Param(description='UNUSED', default=False),
         allycode: str = commands.param(description='Defaults to who ran this command', default=None),
         user: disnake.User = commands.param(description='Defaults to who ran this command', default=None),
