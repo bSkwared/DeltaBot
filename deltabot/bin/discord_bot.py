@@ -200,7 +200,7 @@ class MyClient(disnake.Client):
                 for npID, np in GLOBAL['players'].items():
                     lp = GLOBAL['last_players'].get(npID)
                     if lp == None:
-                        await joins_leaves_thread.send(f'<@&962890734174892112> {np.get("name", "UNKNOWN")} has joined the guild')
+                        await joins_leaves_thread.send(f'<@&894268297812541480> {np.get("name", "UNKNOWN")} has joined the guild')
                         # Don't print diff for new players
                         continue
                     else:
@@ -208,7 +208,7 @@ class MyClient(disnake.Client):
                         for lastpID, lastp in GLOBAL['last_players'].items():
                             oldp = GLOBAL['players'].get(lastpID)
                             if oldp == None:
-                                await joins_leaves_thread.send(f'<@&962890734174892112> {lastp.get("name", "UNKNOWN")} has left the guild')
+                                await joins_leaves_thread.send(f'<@&894268297812541480> {lastp.get("name", "UNKNOWN")} has left the guild')
                                 trash_players.append(lastpID)
                                 continue
 
