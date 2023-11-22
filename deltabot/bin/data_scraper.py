@@ -103,7 +103,7 @@ assert len(raw_guild_data['recentRaidResult']) <= 1
 for raid in raw_guild_data['recentRaidResult']:
     if raid['raidId'] == 'kraytdragon':
         cur_raid_id = 'krayt_damage'
-    elif 'endor' in raid['raidId']:
+    elif raid['raidId'] == 'speederbike':
         cur_raid_id = 'endor_damage'
 
     if cur_raid_id in data:
@@ -124,7 +124,7 @@ for p in raw_guild_data['member']:
         'toon_gears': [],
         'speed_mods': [0] * 40,
         'yesterday_tickets': past_tickets.get('today_tickets', -1),
-        'yesterday_total_tickets': past_tickets.get('total', -1),
+        'yesterday_total_tickets': past_tickets.get('total_tickets', -1),
         'total_tickets': -1,
         'today_tickets': -1,
         'krayt_damage': -1,

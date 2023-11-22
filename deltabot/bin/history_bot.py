@@ -17,6 +17,55 @@ import datetime
 
 bot = commands.Bot()
 
+'''
+797668393 : 0 : <@165166478490861568>
+168232195 : 1 : <@548367852587974669>
+813135746 : 0 : <@526049061015519234>
+245638798 : 1 : <@405170025331163156>
+969845633 : 1 : <@315946527786926082>
+168688624 : 1 : <@349270395725152259>
+126483852 : 1 : <@479812280901566464>
+278342864 : 1 : <@894234525230587935>
+624284899 : 0 : <@361107717621809155>
+825981817 : 1 : <@936863439501025321>
+231914963 : 1 : <@642680810310336532>
+369472317 : 0 : <@339493684498399234>
+937291233 : 1 : <@399674557025484813>
+151593975 : 0 : <@1092874921438367784>
+662511953 : 1 : <@886597175537197086>
+648313163 : 1 : <@347985192440299521>
+629268449 : 0 : <@494626126652506133>
+176784778 : 0 : <@376772749017874433>
+262722744 : 0 : <@351172603974647828>
+785691717 : 0 : <@1098254972149313617>
+257115149 : 0 : <@511865842766577680>
+938893196 : 1 : <@988583679842451516>
+243453117 : 1 : <@207293257762340864>
+892738564 : 0 : <@229972789442904065>
+648316781 : 1 : <@298311434155065356>
+716896212 : 1 : <@101813675391717376>
+841413243 : 0 : <@323005722562527233>
+172727459 : 0 : <@624332475182874664>
+846156634 : 1 : <@814739992612962315>
+132572786 : 0 : <@967738116846780426>
+538994795 : 1 : <@607624076688621608>
+637384578 : 1 : <@241304454027018240>
+917787877 : 1 : <@531637776542859265>
+676728824 : 0 : <@804916714281762826>
+326458668 : 1 : <@895291606821928970>
+239491824 : 0 : <@269747113389326337>
+413742635 : 1 : <@621668466901909505>
+992228328 : 1 : <@589628217112002571>
+849672945 : 0 : <@703314346692051026>
+972981788 : 1 : <@537516656281387038>
+746827833 : 0 : <@628215732890632232>
+153822847 : 1 : <@426906482550898700>
+847818777 : 1 : <@614900489812836384>
+351352931 : 0 : <@514972281353666590>
+667937846 : 0 : <@481684568378703877>
+489517331 : 0 : <@479318956604260353>
+769144997 : 1 : <@81650192071262208>
+'''
 
 allycode_mappings = '''
 797668393 : @acekyrios
@@ -113,21 +162,6 @@ fig.write_image("tmp/fig2.png")
 print(len(gp_names))
 '''
 
-def raw_mod_value(speed_mods):
-    total = 0
-    for speed, count in enumerate(speed_mods):
-        if speed <= 10:
-            continue
-
-        speed_value = (  -6.3058820272303500e+000 * (speed**0)
-                       +  1.3035991984201347e+000 * (speed**1)
-                       + -9.6654093848707642e-002 * (speed**2)
-                       +  2.7728738967038821e-003 * (speed**3))
-
-        total += count * speed_value
-
-    return total
-
 def modscore(speed_mods, char_gp):
     return raw_mod_value(speed_mods) / (char_gp * 3 / 100_000)
 
@@ -149,17 +183,65 @@ def get_subject_allycode(author, allycode, user):
         return user_to_ally[subject_username]
 
 
-def load_gp(daily_data, allycode):
-    individual_data = daily_data.get('guild_members', {}).get(allycode, {})
-    if 'char_gp' not in individual_data or 'ship_gp' not in individual_data:
+def load_gp(daily_data, allycode, guild_combined):
+    char_gp = load_char_gp(daily_data, allycode, guild_combined)
+    ship_gp = load_ship_gp(daily_data, allycode, guild_combined)
+    if char_gp == None or ship_gp == None:
+        return None
+    return char_gp + ship_gp
+
+
+def load_modscore(daily_data, allycode, guild_combined):
+    raw_mod = load_raw_mods(daily_data, allycode, guild_combined)
+    char_gp = load_char_gp(daily_data, allycode, guild_combined)
+    if raw_mod == None or char_gp == None:
         return None
 
-    return individual_data['char_gp'] + individual_data['ship_gp']
+    return raw_mod / (char_gp * 3 / 100_000)
 
 
-def load_modscore(daily_data, allycode):
-    individual_data = daily_data.get('guild_members', {}).get(subject_allycode, {})
-    return 100
+def load_raw_mods(daily_data, allycode, guild_combined):
+    individual_data = daily_data.get('guild_members', {}).get(allycode, {})
+    if 'speed_mods' not in individual_data:
+        return None
+
+    total = 0
+    for speed, count in enumerate(individual_data['speed_mods']):
+        if speed <= 10:
+            continue
+
+        speed_value = (  -6.3058820272303500e+000 * (speed**0)
+                       +  1.3035991984201347e+000 * (speed**1)
+                       + -9.6654093848707642e-002 * (speed**2)
+                       +  2.7728738967038821e-003 * (speed**3))
+
+        total += count * speed_value
+
+    return total
+
+
+def load_char_gp(daily_data, allycode, guild_combined):
+    return daily_data.get('guild_members', {}).get(allycode, {}).get('char_gp')
+
+
+def load_ship_gp(daily_data, allycode, guild_combined):
+    return daily_data.get('guild_members', {}).get(allycode, {}).get('ship_gp')
+
+
+def load_mods_15_speed(daily_data, allycode, guild_combined):
+    return count_mods_speed_threshold(daily_data, allycode, 15, guild_combined)
+
+
+def load_mods_20_speed(daily_data, allycode, guild_combined):
+    return count_mods_speed_threshold(daily_data, allycode, 20, guild_combined)
+
+
+def count_mods_speed_threshold(daily_data, allycode, threshold, guild_combined):
+    individual_data = daily_data.get('guild_members', {}).get(allycode, {})
+    if 'speed_mods' not in individual_data:
+        return None
+    return sum(individual_data['speed_mods'][threshold:])
+    
 
 
 STATS = {
@@ -168,8 +250,28 @@ STATS = {
             'load_func': load_gp,
         },
         'modscore': {
-            'ui_name': 'Modscore',
+            'ui_name': 'Modscore (divided by GP)',
             'load_func': load_modscore,
+        },
+        'character_gp': {
+            'ui_name': 'Character GP',
+            'load_func': load_char_gp,
+        },
+        'ship_gp': {
+            'ui_name': 'Ship GP',
+            'load_func': load_ship_gp,
+        },
+        'raw_mods': {
+            'ui_name': 'Raw Modscore (not divided by GP)',
+            'load_func': load_raw_mods,
+        },
+        'mods_with_15_speed': {
+            'ui_name': 'Mods >= 15 speed',
+            'load_func': load_mods_15_speed,
+        },
+        'mods_with_20_speed': {
+            'ui_name': 'Mods >= 20 speed',
+            'load_func': load_mods_20_speed,
         },
 }
 
@@ -182,18 +284,18 @@ async def autocomp_stats(inter: disnake.ApplicationCommandInteraction, user_inpu
 async def progression(
         inter,
         stat: str = commands.Param(autocomplete=autocomp_stats, description='What stat to show progression in'),
-        days_back: int = commands.Param(description='How many days to go back in history', default=30, ge=1000),
-        guild_combined: bool = False,
+        days_back: int = commands.Param(description='How many days to go back in history', default=30, le=1000),
+        guild_combined: bool = commands.Param(description='UNUSED', default=False),
         allycode: str = commands.param(description='Defaults to who ran this command', default=None),
         user: disnake.User = commands.param(description='Defaults to who ran this command', default=None),
-        ally1: str = commands.param(description='Additional allycode to chart', default=None),
-        ally2: str = commands.param(description='Additional allycode to chart', default=None),
-        ally3: str = commands.param(description='Additional allycode to chart', default=None),
-        ally4: str = commands.param(description='Additional allycode to chart', default=None),
-        user1: disnake.User = commands.param(description='Additional user to chart', default=None),
-        user2: disnake.User = commands.param(description='Additional user to chart', default=None),
-        user3: disnake.User = commands.param(description='Additional user to chart', default=None),
-        user4: disnake.User = commands.param(description='Additional user to chart', default=None),
+        ally1: str = commands.param(description='UNUSED - Additional allycode to chart', default=None),
+        ally2: str = commands.param(description='UNUSED - Additional allycode to chart', default=None),
+        ally3: str = commands.param(description='UNUSED - Additional allycode to chart', default=None),
+        ally4: str = commands.param(description='UNUSED - Additional allycode to chart', default=None),
+        user1: disnake.User = commands.param(description='UNUSED - Additional user to chart', default=None),
+        user2: disnake.User = commands.param(description='UNUSED - Additional user to chart', default=None),
+        user3: disnake.User = commands.param(description='UNUSED - Additional user to chart', default=None),
+        user4: disnake.User = commands.param(description='UNUSED - Additional user to chart', default=None),
         ):
     try:
         subject_allycode = get_subject_allycode(inter.author, allycode, user)
@@ -228,7 +330,7 @@ async def progression(
         for sac in subject_allycodes:
             if sac not in ac_data:
                 ac_data[sac] = []
-            ac_data[sac].append(cur_stat['load_func'](guild_data, sac))
+            ac_data[sac].append(cur_stat['load_func'](guild_data, sac, guild_combined))
 
         cur_name  = guild_data['guild_members'].get(sac, {}).get('name')
         print(cur_name)
@@ -255,7 +357,8 @@ async def progression(
     print(df)
     print(f'columns: {df.columns[1]}')
     print(f'columns: {df.columns}')
-    fig = px.line(df, x='Date', y=df.columns[1:])
+    fig = px.line(df, x='Date', y=df.columns[1:], template='plotly_dark')
+    # fig.update_yaxes(rangemode="tozero")
     fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
     fig.write_image(fig_filepath)
     await inter.followup.send(file=disnake.File(fig_filepath))
