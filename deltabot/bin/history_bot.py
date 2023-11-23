@@ -89,6 +89,7 @@ def load_modscore(daily_data, allycode, guild_combined):
     raw_mod = load_raw_mods(daily_data, allycode, guild_combined)
     char_gp = load_char_gp(daily_data, allycode, guild_combined)
     if raw_mod == None or char_gp == None:
+        print('blake')
         return None
 
     return raw_mod / (char_gp * 3 / 100_000)
@@ -264,12 +265,14 @@ async def progression(
         subject_allycodes.append(GUILD_FAKE_AC)
         ac_latest_name[GUILD_FAKE_AC] = GUILD_NAME
 
+    ignore_days = []
     for cur_date in days:
         filename = cur_date.strftime("%Y_%m_%d.py")
         try:
             with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
                 guild_data = json.load(fp)
         except:
+            ignore_days.append(cur_date)
             continue
 
         for sac in subject_allycodes:
@@ -280,6 +283,7 @@ async def progression(
             if 'name' in member:
                 ac_latest_name[sac] = member['name'].replace(' ', '')[:10]
 
+    days = [d for d in days if d not in ignore_days]
     if not ac_data:
         await inter.followup.send('unable to find data')
         return
