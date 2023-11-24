@@ -101,7 +101,7 @@ pid_raid_damage = {}
 cur_raid_id = None
 assert len(raw_guild_data['recentRaidResult']) <= 1
 for raid in raw_guild_data['recentRaidResult']:
-    if raid['raidId'] == 'kraytdragon':
+    if raid['raidId'] == 'kraytdragon' and cur_raid_id == None:
         cur_raid_id = 'krayt_damage'
     elif raid['raidId'] == 'speederbike':
         cur_raid_id = 'endor_damage'
