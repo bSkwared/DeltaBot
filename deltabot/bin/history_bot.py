@@ -89,7 +89,6 @@ def load_modscore(daily_data, allycode, guild_combined):
     raw_mod = load_raw_mods(daily_data, allycode, guild_combined)
     char_gp = load_char_gp(daily_data, allycode, guild_combined)
     if raw_mod == None or char_gp == None:
-        print('blake')
         return None
 
     return raw_mod / (char_gp * 3 / 100_000)
@@ -300,6 +299,105 @@ async def progression(
             title=f'{cur_stat["ui_name"]} for {", ".join(names)} last {days_back} days',
             labels={'variable':'Player', 'value':cur_stat['ui_name']})
     # fig.update_yaxes(rangemode="tozero")
+    fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
+    fig.write_image(fig_filepath)
+    await inter.followup.send(file=disnake.File(fig_filepath))
+
+    try:
+        os.remove(fig_filepath)
+    except:
+        pass
+
+
+@bot.slash_command(name="comparegrowth", description="Show chart comparing growth of all members for a given stat")
+async def comparegrowth(
+        inter,
+        stat: str = commands.Param(autocomplete=autocomp_stats, description='What stat to compare growth of'),
+        days_back: int = commands.Param(description='How many days to go back in history', default=90, le=1000),
+        use_percent: bool = commands.Param(description='Show gorwth as a percent from start date', default=False),
+        ):
+
+    await inter.response.defer()
+
+    latest_date = datetime.datetime.now()
+    earliest_date = latest_date - datetime.timedelta(days=days_back)
+
+
+    earliest_data = {}
+    while earliest_date < latest_date:
+        filename = earliest_date.strftime("%Y_%m_%d.py")
+        try:
+            with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
+                guild_data = json.load(fp)
+        except:
+            earliest_date += datetime.timedelta(days=1)
+            continue
+
+        for ac in guild_data['guild_members'].keys():
+            result = STATS[stat]['load_func'](guild_data, ac, False)
+
+            if result:
+                earliest_data[ac] = result
+
+        if earliest_data:
+            break
+
+        earliest_date += datetime.timedelta(days=1)
+
+    latest_data = {}
+    ac_latest_name = {}
+    while latest_date > earliest_date:
+        filename = latest_date.strftime("%Y_%m_%d.py")
+        try:
+            with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
+                guild_data = json.load(fp)
+        except:
+            latest_date -= datetime.timedelta(days=1)
+            continue
+
+        for ac in guild_data['guild_members'].keys():
+            result = STATS[stat]['load_func'](guild_data, ac, False)
+            if result:
+                latest_data[ac] = result
+                ac_latest_name[ac] = guild_data['guild_members'][ac]['name']
+
+        if latest_data:
+            break
+
+        latest_date -= datetime.timedelta(days=1)
+
+
+
+
+
+
+    if not latest_data or not earliest_data:
+        await inter.followup.send('unable to find data')
+        return
+
+
+    data_list = []
+    for ac in latest_data.keys():
+        if ac in earliest_data:
+            if use_percent:
+                growth = (latest_data[ac] / earliest_data[ac]) - 1
+            else:
+                growth = latest_data[ac] - earliest_data[ac]
+            data_list.append({
+                'name': ac_latest_name[ac].replace(' ', '')[:10],
+                'growth': growth,
+            })
+    df = pd.DataFrame(sorted(data_list, key=lambda x: x['growth']))
+
+
+
+    
+
+    fig = px.bar(df, y='growth', x='name', template='plotly_dark')
+    #        title=f'{cur_stat["ui_name"]} for {", ".join(names)} last {days_back} days',
+    #        labels={'variable':'Player', 'value':cur_stat['ui_name']})
+    # fig.update_yaxes(rangemode="tozero")
+    fig.update_layout( xaxis_tickangle=-45, width=1000)
     fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
     fig.write_image(fig_filepath)
     await inter.followup.send(file=disnake.File(fig_filepath))
