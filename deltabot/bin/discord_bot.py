@@ -25,7 +25,7 @@ disnake_logger.addHandler(handler)
 
 
 
-SLEEP_S = 30
+SLEEP_S = 0
 SEQ_DELAY = 3
 comlink = SwgohComlink(url='http://localhost:3200')
 player_data = comlink.get_player(config.allycode)
@@ -170,6 +170,7 @@ class MyClient(disnake.Client):
         await thread.send(f"{datetime.datetime.now()} Bot starting <@531637776542859265>\n")
 
         inactivities_thread = officers_channel.get_thread(config.officers_inactivities_thread_id)
+        activity_list_thread = officers_channel.get_thread(config.officers_activity_list_thread_id)
         gl_unlock_thread = officers_channel.get_thread(config.officers_gl_unlock_thread_id)
         joins_leaves_thread = officers_channel.get_thread(config.officers_joins_leaves_thread_id)
 
@@ -189,6 +190,18 @@ class MyClient(disnake.Client):
             #         },
             #     },
             # }
+
+            async for inactivities_message in activity_list_thread.history(limit=100):
+                # Check if the message is an embed and has the specific title
+                if isinstance(inactivities_message.embeds, list) and len(inactivities_message.embeds) > 0:
+                    embed = inactivities_message.embeds[0]
+                    if embed.title == "Player Activity":
+                        inactive_message = inactivities_message
+                        break
+                else:
+                    inactive_message = None
+
+            activity_list_embed = disnake.Embed(title='Player Activity', colour=0x801010)
             while True:
                 GLOBAL['cur_seq'] += 1
                 # log('Poll for new update to guild and players')
@@ -196,7 +209,7 @@ class MyClient(disnake.Client):
                 await loop.run_in_executor(None, update_players)
                 #guild = comlink.get_guild(guild_id)
                 #players = {p['playerId']: comlink.get_player(player_id=p['playerId']) for p in guild['member']}
-
+                activity_list = []
                 for npID, np in GLOBAL['players'].items():
                     lp = GLOBAL['last_players'].get(npID)
                     if lp == None:
@@ -217,7 +230,8 @@ class MyClient(disnake.Client):
 
                     # check for 24h inactivity
                     last_activity = datetime.datetime.fromtimestamp(int(np['lastActivityTime'])//1000)
-                    days_inactive = (datetime.datetime.now() - last_activity).days
+                    inactive = datetime.datetime.now() - last_activity
+                    days_inactive = inactive.days
                     if days_inactive > inactivities.get(npID, 0):
                         inactivities[npID] = days_inactive
                         day_str = 'days <@&894268297812541480>' if days_inactive > 1 else 'day'
@@ -240,6 +254,7 @@ class MyClient(disnake.Client):
                     elif days_inactive == 0 and npID in inactivities:
                         del inactivities[npID]
 
+                    activity_list += [(np.get("name", "UNKNOWN").replace(" ", "")[:10], datetime.timedelta(days=int(inactive.days), seconds=int(inactive.seconds)))]
                     msg = []
                     lp_roster = {c['id']: c for c in lp['rosterUnit']}
                     for c in np['rosterUnit']:
@@ -302,7 +317,20 @@ class MyClient(disnake.Client):
                             update['toons'] = toons
                             GLOBAL['player_updates'][npID] = update
 
+                activity_list = sorted(activity_list, key=lambda x: x[1])
+                al_description = '```'
+                for al in activity_list:
+                    days = al[1].days
+                    hours, remainder = divmod(al[1].seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    al_description += f'{days}:{hours:02d}:{minutes:02d}:{seconds:02d} | {al[0]}\n'
 
+                al_description += '```'
+                activity_list_embed.description = al_description
+                if inactive_message == None:
+                    inactive_message = await activity_list_thread.send(embed=activity_list_embed)
+                else:
+                    await inactive_message.edit(embed=activity_list_embed)
 
                 deleted_keys = []
                 for pID, update in GLOBAL['player_updates'].items():

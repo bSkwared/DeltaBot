@@ -12,6 +12,7 @@ accomplishments_thread_id = int
 officers_channel_id = int
 officers_gl_unlock_thread_id = int
 officers_inactivities_thread_id = int
+officers_activity_list_thread_id = int
 officers_joins_leaves_thread_id = int
 relics_thread_id = int
 
