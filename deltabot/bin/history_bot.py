@@ -93,6 +93,15 @@ def load_modscore(daily_data, allycode, guild_combined):
 
     return raw_mod / (char_gp * 3 / 100_000)
 
+def load_endor(daily_data, allycode, guild_combined):
+    total = None
+    for ac, m in daily_data.get('guild_members', {}).items():
+        if guild_combined or ac == allycode:
+            if m.get('endor_damage', -1) == -1:
+                continue
+            total = total or 0
+            total += m['endor_damage']
+    return total
 
 def load_raw_mods(daily_data, allycode, guild_combined):
     total = None
@@ -168,6 +177,10 @@ STATS = {
         'modscore': {
             'ui_name': 'Modscore (divided by GP)',
             'load_func': load_modscore,
+        },
+        'endor': {
+            'ui_name': 'Endor Raid Score',
+            'load_func': load_endor,
         },
         'character_gp': {
             'ui_name': 'Character GP',
@@ -285,9 +298,6 @@ async def progression(
                 ac_latest_name[sac] = member['name'].replace(' ', '')[:10]
 
     days = [d for d in days if d not in ignore_days]
-    print(f'ac_data {ac_data}')
-    print(f'Ds {[d for d in ac_data.values()]}')
-    print(f'any {[any(d) for d in ac_data.values()]}')
     if not ac_data or not any(any(d) for d in ac_data.values()):
         await inter.followup.send('unable to find data')
         return
