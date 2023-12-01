@@ -103,6 +103,16 @@ def load_endor(daily_data, allycode, guild_combined):
             total += m['endor_damage']
     return total
 
+def load_total_tickets(daily_data, allycode, guild_combined):
+    total = None
+    for ac, m in daily_data.get('guild_members', {}).items():
+        if guild_combined or ac == allycode:
+            if m.get('total_tickets', -1) == -1:
+                continue
+            total = total or 0
+            total += m['total_tickets']
+    return total
+
 def load_raw_mods(daily_data, allycode, guild_combined):
     total = None
     for ac, m in daily_data.get('guild_members', {}).items():
@@ -181,6 +191,10 @@ STATS = {
         'endor': {
             'ui_name': 'Endor Raid Score',
             'load_func': load_endor,
+        },
+        'total_ticket': {
+            'ui_name': 'Total ticket',
+            'load_func': load_total_tickets,
         },
         'character_gp': {
             'ui_name': 'Character GP',
