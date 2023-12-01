@@ -285,7 +285,10 @@ async def progression(
                 ac_latest_name[sac] = member['name'].replace(' ', '')[:10]
 
     days = [d for d in days if d not in ignore_days]
-    if not ac_data:
+    print(f'ac_data {ac_data}')
+    print(f'Ds {[d for d in ac_data.values()]}')
+    print(f'any {[any(d) for d in ac_data.values()]}')
+    if not ac_data or not any(any(d) for d in ac_data.values()):
         await inter.followup.send('unable to find data')
         return
 
@@ -293,22 +296,32 @@ async def progression(
     plot_data = {'Date': days}
     names = []
     for ac, gps in ac_data.items():
-        plot_data[ac_latest_name[ac]] = gps
-        names.append(ac_latest_name[ac])
-
-    df = pd.DataFrame.from_dict(plot_data)
-    fig = px.line(df, x='Date', y=df.columns[1:], template='plotly_dark',
-            title=f'{cur_stat["ui_name"]} for {", ".join(names)} last {days_back} days',
-            labels={'variable':'Player', 'value':cur_stat['ui_name']})
-    # fig.update_yaxes(rangemode="tozero")
-    fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
-    fig.write_image(fig_filepath)
-    await inter.followup.send(file=disnake.File(fig_filepath))
+        n = ac_latest_name.get(ac, ac)
+        if any(gps):
+            plot_data[n] = gps
+            names.append(n)
 
     try:
-        os.remove(fig_filepath)
-    except:
-        pass
+        df = pd.DataFrame.from_dict(plot_data)
+        fig = px.line(df, x='Date', y=df.columns[1:], template='plotly_dark',
+                title=f'{cur_stat["ui_name"]} for {", ".join(names)} last {days_back} days',
+                labels={'variable':'Player', 'value':cur_stat['ui_name']})
+        # fig.update_yaxes(rangemode="tozero")
+        fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
+    except Exception as e:
+        print(e)
+        await inter.followup.send('unable to generate graph')
+        return
+
+    try:
+        fig.write_image(fig_filepath)
+        await inter.followup.send(file=disnake.File(fig_filepath))
+
+    finally:
+        try:
+            os.remove(fig_filepath)
+        except:
+            pass
 
 
 @bot.slash_command(name="comparegrowth", description="Show chart comparing growth of all members for a given stat")
@@ -368,11 +381,6 @@ async def comparegrowth(
 
         latest_date -= datetime.timedelta(days=1)
 
-
-
-
-
-
     if not latest_data or not earliest_data:
         await inter.followup.send('unable to find data')
         return
@@ -389,24 +397,31 @@ async def comparegrowth(
                 'name': ac_latest_name[ac].replace(' ', '')[:10],
                 'growth': growth,
             })
-    df = pd.DataFrame(sorted(data_list, key=lambda x: x['growth']))
-
-
-
-    
-
-    fig = px.bar(df, y='growth', x='name', template='plotly_dark')
-    #        title=f'{cur_stat["ui_name"]} for {", ".join(names)} last {days_back} days',
-    #        labels={'variable':'Player', 'value':cur_stat['ui_name']})
-    # fig.update_yaxes(rangemode="tozero")
-    fig.update_layout( xaxis_tickangle=-45, width=1000)
-    fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
-    fig.write_image(fig_filepath)
-    await inter.followup.send(file=disnake.File(fig_filepath))
+    if not data_list:
+        await inter.followup.send('unable to find data')
+        return
 
     try:
-        os.remove(fig_filepath)
-    except:
-        pass
+        df = pd.DataFrame(sorted(data_list, key=lambda x: x['growth']))
+
+        fig = px.bar(df, y='growth', x='name', template='plotly_dark')
+        #        title=f'{cur_stat["ui_name"]} for {", ".join(names)} last {days_back} days',
+        #        labels={'variable':'Player', 'value':cur_stat['ui_name']})
+        # fig.update_yaxes(rangemode="tozero")
+        fig.update_layout( xaxis_tickangle=-45, width=1000)
+        fig_filepath = os.path.join(config.TMP_DIR, f'{stat}_since_{days_back}_{inter.author.name}.png')
+    except Exception:
+        await inter.followup.send('unable to generate graph')
+        return
+
+
+    try:
+        fig.write_image(fig_filepath)
+        await inter.followup.send(file=disnake.File(fig_filepath))
+    finally:
+        try:
+            os.remove(fig_filepath)
+        except Exception:
+            pass
 
 bot.run(config.discord_token)
