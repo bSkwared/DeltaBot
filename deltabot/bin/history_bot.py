@@ -219,13 +219,15 @@ async def progression(
         if user.id not in id_to_ally:
             err_msg.append(f'Unable to find allycode for {user.name}')
             return
-        subject_allycodes.append(id_to_ally[user.id])
+        if id_to_ally[user.id] not in subject_allycodes:
+            subject_allycodes.append(id_to_ally[user.id])
 
     def add_ac(ac):
         if len(ac) != 9 or not ac.isdigit():
             err_msg.append(f'invalid allycode (should be 9 digits): {ac}')
             return
-        subject_allycodes.append(ac)
+        if ac not in subject_allycodes:
+            subject_allycodes.append(ac)
 
     for u in (None if hide_self or guild_combined else inter.author, user1, user2, user3, user4):
         if u:
