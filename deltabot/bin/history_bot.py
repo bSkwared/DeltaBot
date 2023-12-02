@@ -506,8 +506,8 @@ async def accomplishments(
         subject_ac = id_to_ally[user.id]
 
     elif ally:
-        if len(ac) != 9 or not ac.isdigit():
-            inter.response.send_message(f'invalid allycode (should be 9 digits): {ac}')
+        if len(ally) != 9 or not ally.isdigit():
+            inter.response.send_message(f'invalid allycode (should be 9 digits): {ally}')
             return
         subject_ac = ally
 
