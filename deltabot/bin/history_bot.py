@@ -15,6 +15,43 @@ import pandas as pd
 
 import datetime
 
+import bin.Image_generator as gen
+from swgoh_comlink import SwgohComlink
+
+comlink = SwgohComlink(url='http://localhost:3200')
+name_key_to_string = {}
+localization = comlink.get_localization(id=comlink.localization_version,
+                                        unzip=True)['Loc_ENG_US.txt']
+for line in localization.splitlines():
+    if line.strip().startswith('#'):
+        continue
+    else:
+        k, v = line.split('|')
+        name_key_to_string[k] = v
+localization = None
+
+unit_to_idx = {}
+with open(os.path.join(config.DAILY_DATA_DIR, 'unit_to_idx.py'), 'r') as fp:
+    unit_to_idx = json.load(fp)
+assert unit_to_idx
+idx_to_unit = {v: k for k, v in unit_to_idx.items()}
+
+
+idx_to_alignment = [None for i in idx_to_unit.keys()]
+id_to_alignment = {}
+idx_to_name = [None for i in idx_to_unit.keys()]
+units = comlink.get_game_data(include_pve_units=False)['units']
+for unit in units:
+    unit_id, _ = unit['id'].split(':')
+    try:
+        idx_to_alignment[unit_to_idx[unit_id]] = unit['forceAlignment']
+        idx_to_name[unit_to_idx[unit_id]] = name_key_to_string[unit['nameKey']]
+    except:
+        pass
+
+assert all(idx_to_alignment[idx] != None for idx in idx_to_unit.keys())
+
+
 bot = commands.Bot()
 
 allycodes_to_ids = '''
@@ -448,4 +485,98 @@ async def comparegrowth(
         except Exception:
             pass
 
+
+@bot.slash_command(name="charsummary", description="Show the results of your farming")
+async def charsummary(
+        inter,
+        days_back: int = commands.Param(description='How many days to go back in history', default=90, le=1000),
+        user: disnake.User = commands.param(description='User to check their growth', default=None),
+        ally: str = commands.param(description='Allycode to check the growth', default=None),
+        ):
+
+    if user and ally:
+        await inter.response.send_message('You cannot provide both a user and an allycode')
+        return
+
+    subject_ac = None
+    if user:
+        if user.id not in id_to_ally:
+            inter.response.send_message(f'Unable to find allycode for {user.name}')
+            return
+        subject_ac = id_to_ally[user.id]
+
+    elif ally:
+        if len(ac) != 9 or not ac.isdigit():
+            inter.response.send_message(f'invalid allycode (should be 9 digits): {ac}')
+            return
+        subject_ac = ally
+
+    else:
+        if inter.author.id not in id_to_ally:
+            inter.response.send_message(f'Unable to find allycode for {inter.author.name}')
+            return
+        subject_ac = id_to_ally[inter.author.id]
+    await inter.response.defer()
+
+
+    latest_date = datetime.datetime.now()
+    earliest_date = latest_date - datetime.timedelta(days=days_back)
+
+    stars = 'toon_stars'
+    gear = 'toon_gears'
+
+    def get_gear_star_data(date, subject_ac):
+        try:
+            filename = date.strftime("%Y_%m_%d.py")
+            with open(os.path.join(config.DAILY_DATA_DIR, filename), 'r') as fp:
+                guild_data = json.load(fp)
+            data = guild_data['guild_members'].get(subject_ac)
+            return {
+                stars: data[stars],
+                gear: data[gear],
+                'name': data['name'],
+            }
+
+        except Exception as e:
+            print(e)
+            return None
+
+    earliest_data = None
+    while earliest_date < latest_date:
+        earliest_data = get_gear_star_data(earliest_date, subject_ac)
+        if earliest_data:
+            break
+        earliest_date += datetime.timedelta(days=1)
+
+    latest_data = {}
+    while latest_date > earliest_date:
+        latest_data = get_gear_star_data(latest_date, subject_ac)
+        if latest_data:
+            break
+        latest_date -= datetime.timedelta(days=1)
+
+    if not latest_data or not earliest_data:
+        await inter.followup.send('unable to find data')
+        return
+
+
+    global id_to_alignment
+    global idx_to_alignment
+
+    try:
+        init_stars = earliest_data[stars]
+        final_stars = latest_data[stars]
+        init_gears = earliest_data[gear]
+        final_gears = latest_data[gear]
+        filename = gen.many(init_stars, final_stars, init_gears, final_gears, idx_to_name, idx_to_alignment, subject_ac)
+        await inter.followup.send(file=disnake.File(filename))
+    except Exception as e:
+        print(e)
+    finally:
+        try:
+            os.remove(fig_filepath)
+        except Exception:
+            pass
+
 bot.run(config.discord_token)
+

@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw, ImageOps, ImageFont
 import os
 import config
 import utils
+import random
 
 path = config.base_dir
 # path = 'deltabot'
@@ -27,6 +28,73 @@ def main(unit_img_path, relic_final, relic_init, alignment, stars_init, stars_fi
     filepath = f"{path}/tmp/{player_name}-{relic_init}-{relic_final}-{unit_name}.png"
     base_image.save(filepath)
     return filepath
+
+def many(init_stars, final_stars, init_gears, final_gears, names, alignments, ac):
+    images = []
+
+    img_height = 160
+    img_width = 160
+    gear_height = 130
+    star_active = Image.open(f"{path}/source/star-active.png").convert('RGBA')
+    arrow_img = Image.open(f"{path}/source/bland-arrow.png").convert('RGBA')
+    arrow_img = arrow_img.resize(size=(185, 180))
+
+    for idx, name in enumerate(names):
+        stars_init = init_stars[idx] if idx < len(init_stars) else 0
+        stars_final = final_stars[idx]
+        init_gear = init_gears[idx] if idx < len(init_gears) else 0
+        final_gear = final_gears[idx]
+        alignment = alignments[idx]
+
+        if stars_init == stars_final and init_gear == final_gear:
+            continue
+        unit_img_path = utils.get_unit_img_path(name)
+        if not os.path.exists(unit_img_path):
+            utils.update_unit_images(name)
+        if not os.path.exists(unit_img_path):
+            continue
+
+        relic_init = 'G0'
+        if init_gear < 13:
+            relic_init = f'G{init_gear}'
+        else:
+            relic_init = f'R{init_gear-15}'
+
+        relic_final = 'G0'
+        if final_gear < 13:
+            relic_final = f'G{final_gear}'
+        else:
+            relic_final = f'R{final_gear-15}'
+
+
+
+        base_image = Image.new('RGBA', (160 * 3, 160+ int(star_active.height//1.5)), (0, 0, 0, 0))
+        init_img = gen_img(unit_img_path, relic_init, alignment, stars_init, img_height, img_width, 0, 0)
+        final_img = gen_img(unit_img_path, relic_final, alignment, stars_final, img_height, img_width, 0, 0)
+        add_stars(relic_height=160, base_image=base_image, stars=stars_init, offset=0)
+        add_stars(relic_height=160, base_image=base_image, stars=stars_final, offset=160*2)
+        base_image.alpha_composite(init_img, dest=(0, 0))
+        base_image.alpha_composite(arrow_img, dest=(150, -10))
+        base_image.alpha_composite(final_img, dest=(160*2, 0))
+
+        images.append((base_image, final_gear))
+
+    height = 160+ int(star_active.height//1.5)
+    base_image = Image.new('RGBA', (160 * 3, len(images) * height), (0, 0, 0, 0))
+
+    images = sorted(images, key=lambda x: x[1])
+    cur_pix = 0
+    inc = height
+    while images:
+        base_image.paste(images.pop()[0], (0, cur_pix))
+        cur_pix += inc
+
+    filepath = f"{path}/tmp/{ac}-farming-{random.randint(0, 1_000_000)}.png"
+    base_image.save(filepath)
+    return filepath
+
+
+
 
 def gen_img(unit_img_path, relic_final, alignment, stars, img_height, img_width, zeta_cnt, omicron_cnt):
     gear_height = 130
