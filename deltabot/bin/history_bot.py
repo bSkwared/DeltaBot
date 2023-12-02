@@ -486,8 +486,8 @@ async def comparegrowth(
             pass
 
 
-@bot.slash_command(name="charsummary", description="Show the results of your farming")
-async def charsummary(
+@bot.slash_command(name="accomplishments", description="Show the results of your farming")
+async def accomplishments(
         inter,
         days_back: int = commands.Param(description='How many days to go back in history', default=90, le=1000),
         user: disnake.User = commands.param(description='User to check their growth', default=None),
