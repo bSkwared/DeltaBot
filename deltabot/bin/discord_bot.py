@@ -413,7 +413,7 @@ class MyClient(disnake.Client):
                             await thread.send(embed=embed)
 
                         try:
-                            pass
+                            os.remove(gen_path)
                         except:
                             pass
 
