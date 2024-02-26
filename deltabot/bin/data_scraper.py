@@ -28,14 +28,14 @@ yesterday_tickets = {}
 try:
     with open(yesterday_file, 'r') as fp:
         yesterday_data = json.load(fp)
+    for ac, player in yesterday_data['guild_members'].items():
+        try:
+            yesterday_tickets[ac] = {'today_tickets': player['today_tickets'], 'total_tickets': player['total_tickets']}
+        except:
+            pass
 except:
     pass
 
-for ac, player in yesterday_data['guild_members'].items():
-    try:
-        yesterday_tickets[ac] = {'today_tickets': player['today_tickets'], 'total_tickets': player['total_tickets']}
-    except:
-        pass
 
 try:
     with open(unit_file, 'r') as fp:
