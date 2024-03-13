@@ -1,0 +1,95 @@
+
+/guild
+
+/individual
+
+
+
+
+show bar chart comparing everyones growth past X days, sorted
+show individual line chart of progress (default to 0 as bottom, but allow changing)
+show guild line chart of progress
+show individual speed mods progress
+
+
+
+
+
+
+show line chart of multiple people
+show bar chart showing growth over period for two people
+
+
+
+/compare user1, user2, ...
+
+
+
+
+/progress guild=False, user1=author, user2, user3, user4, ...
+
+
+/member compare
+/individual progress
+/guild progress
+
+
+
+
+
+oooooo
+
+
+
+
+
+
+
+
+/progression stat=(gp,chargp,shipgp,rawmod,modscore, mods>=15, mods>=20) since, guild_combined=False, user, user1, user2, ally1, ally2, 
+my GP growth line chart
+my mod score grorwth line chart
+line chart with 1-10 people GP growth
+line chart with 1-10 people mod score growth
+line chart of applying signal data
+guild GP growth line chart
+guild mod score growth line chart
+
+
+/modbreakdown (show current mod breakdown) user, user1, ally1, ally2,minspeed
+/modbreakdown change since, user, use1, ally1, minspeed
+
+
+
+
+/compare stat=(same as progression), since, 
+bar chart of each persons Y growth since X
+bar chart of each persons applied signal data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+k
+
+
+
