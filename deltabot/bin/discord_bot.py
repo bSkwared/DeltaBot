@@ -396,7 +396,7 @@ class MyClient(disnake.Client):
                             omicron_count_init = omicron_count_init,
                             omicron_count_latest = omicron_count_latest,
                             unit_name=re.sub(r"[^A-Za-z0-9]+", '', '-'.join(name.split()) ).lower(),
-                            player_name='-'.join(player_name.split()),
+                            player_name=re.sub(r"[^A-Za-z0-9]+", '', '-'.join(player_name.split()) ).lower(),
                             )
                         if os.path.exists(gen_path):
                             embed.set_image(file=disnake.File(gen_path))

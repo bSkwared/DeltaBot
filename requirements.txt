@@ -27,7 +27,7 @@ pytz==2022.7
 requests==2.28.1
 six==1.16.0
 stackprinter==0.2.10
-swgoh-comlink==1.7.3.1
+swgoh-comlink==1.7.7
 tenacity==8.1.0
 urllib3==1.26.13
 yarl==1.8.2
