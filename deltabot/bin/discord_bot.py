@@ -381,23 +381,27 @@ class MyClient(disnake.Client):
                         embed.add_field(name=name, value='', inline=False)
                         unit_img_path = utils.get_unit_img_path(name)
 
-                        if not os.path.exists(unit_img_path):
-                            utils.update_unit_images(name)
+                        gen_path = '/super_crazy_invalid_path_never_exists'
+                        try:
+                            if not os.path.exists(unit_img_path):
+                                utils.update_unit_images(name)
 
-                        gen_path = gen.main(
-                            unit_img_path=unit_img_path, 
-                            relic_final=final_gear_relic, 
-                            relic_init=init_gear_relic, 
-                            alignment=stats['alignment'], 
-                            stars_init=stars_init, 
-                            stars_final=stars_final, 
-                            zeta_count_init = zeta_count_init,
-                            zeta_count_latest = zeta_count_latest,
-                            omicron_count_init = omicron_count_init,
-                            omicron_count_latest = omicron_count_latest,
-                            unit_name=re.sub(r"[^A-Za-z0-9]+", '', '-'.join(name.split()) ).lower(),
-                            player_name=re.sub(r"[^A-Za-z0-9]+", '', '-'.join(player_name.split()) ).lower(),
-                            )
+                            gen_path = gen.main(
+                                unit_img_path=unit_img_path, 
+                                relic_final=final_gear_relic, 
+                                relic_init=init_gear_relic, 
+                                alignment=stats['alignment'], 
+                                stars_init=stars_init, 
+                                stars_final=stars_final, 
+                                zeta_count_init = zeta_count_init,
+                                zeta_count_latest = zeta_count_latest,
+                                omicron_count_init = omicron_count_init,
+                                omicron_count_latest = omicron_count_latest,
+                                unit_name=re.sub(r"[^A-Za-z0-9]+", '', '-'.join(name.split()) ).lower(),
+                                player_name=re.sub(r"[^A-Za-z0-9]+", '', '-'.join(player_name.split()) ).lower(),
+                                )
+                        except Exception as e:
+                            pass
                         if os.path.exists(gen_path):
                             embed.set_image(file=disnake.File(gen_path))
                         # elif os.path.exists(unit_img_path):
